@@ -141,7 +141,7 @@ async function loadPrecomputedEmbeddings(): Promise<{
   ]);
 
   embeddingsCache = new Float32Array(embBuf);
-  embeddingIdsCache = idsJson;
+  embeddingIdsCache = idsJson as string[];
   return { embeddings: embeddingsCache, ids: embeddingIdsCache };
 }
 

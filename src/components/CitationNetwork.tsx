@@ -77,9 +77,8 @@ export default function CitationNetwork({ onPaperCount }: Props) {
         labelFont: "Inter, system-ui, sans-serif",
         defaultEdgeColor: "#1e1e40",
         defaultEdgeType: "arrow",
-        nodeReducer: (node, data) => {
-          const res = { ...data };
-          return res;
+        nodeReducer: (_node, data) => {
+          return { ...data };
         },
         edgeReducer: (_edge, data) => {
           return { ...data, hidden: false };

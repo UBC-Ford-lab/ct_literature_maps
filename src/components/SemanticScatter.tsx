@@ -293,7 +293,8 @@ export default function SemanticScatter({
     <Plot
       data={traces}
       layout={{
-        template: "plotly_dark" as unknown,
+        // @ts-expect-error plotly template string
+        template: "plotly_dark",
         paper_bgcolor: "#0a0a14",
         plot_bgcolor: "#0a0a14",
         margin: { t: 10, b: 10, l: 10, r: 10 },
