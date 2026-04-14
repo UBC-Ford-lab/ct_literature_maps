@@ -123,9 +123,10 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
         const size = citations <= 0 ? 1 : Math.max(1, Math.min(12, Math.sqrt(citations) * 0.07));
         const color = CATEGORY_COLORS[n.community ?? 0] || "#666";
 
+        // Scale up positions so graph fills the viewport (Sigma works best with larger coords)
         graph.addNode(n.id, {
-          x: n.x ?? (Math.random() - 0.5) * 100,
-          y: n.y ?? (Math.random() - 0.5) * 100,
+          x: (n.x ?? (Math.random() - 0.5)) * 500,
+          y: (n.y ?? (Math.random() - 0.5)) * 500,
           size,
           color,
           origColor: color,
@@ -219,13 +220,6 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
       });
 
       sigmaRef.current = sigma;
-
-      // Center and zoom to fit all nodes after first render
-      setTimeout(() => {
-        const camera = sigma.getCamera();
-        camera.setState({ x: 0.5, y: 0.5, ratio: 0.8, angle: 0 });
-        sigma.refresh();
-      }, 100);
     })();
 
     return () => {
