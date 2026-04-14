@@ -34,6 +34,21 @@
 .view-tabs button:hover { color: var(--text-primary); background: #1a1a30; }
 .view-tabs button.active { color: var(--text-primary); background: #22224a; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
 .paper-count { font-size: 11px; color: var(--text-muted); padding: 4px 10px; background: var(--bg-surface); border-radius: 12px; white-space: nowrap; }
+.github-btn {
+  width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border);
+  background: var(--bg-surface); color: var(--text-secondary);
+  display: flex; align-items: center; justify-content: center;
+  text-decoration: none; transition: all 0.15s;
+}
+.github-btn:hover { background: #1a1a35; color: var(--text-primary); border-color: var(--accent); }
+.help-btn {
+  width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border);
+  background: var(--bg-surface); color: var(--text-secondary); font-size: 13px;
+  font-weight: 700; font-family: inherit; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; padding: 0; transition: all 0.15s;
+}
+.help-btn:hover { background: #1a1a35; color: var(--text-primary); border-color: var(--accent); }
+.top-bar-right { display: flex; align-items: center; gap: 8px; }
 
 /* Main layout */
 .main-layout { display: flex; flex: 1; overflow: hidden; }

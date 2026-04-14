@@ -220,11 +220,12 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
 
       sigmaRef.current = sigma;
 
-      // Center and zoom to fit all nodes
-      requestAnimationFrame(() => {
+      // Center and zoom to fit all nodes after first render
+      setTimeout(() => {
         const camera = sigma.getCamera();
-        camera.animate({ x: 0.5, y: 0.5, ratio: 0.9 }, { duration: 300 });
-      });
+        camera.setState({ x: 0.5, y: 0.5, ratio: 0.8, angle: 0 });
+        sigma.refresh();
+      }, 100);
     })();
 
     return () => {
