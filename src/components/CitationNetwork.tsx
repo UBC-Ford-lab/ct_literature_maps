@@ -220,6 +220,16 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
       });
 
       sigmaRef.current = sigma;
+
+      // Force Sigma to recalculate dimensions and re-center after the container is fully laid out
+      setTimeout(() => {
+        sigma.resize();
+        sigma.refresh();
+      }, 50);
+      setTimeout(() => {
+        sigma.resize();
+        sigma.refresh();
+      }, 300);
     })();
 
     return () => {
