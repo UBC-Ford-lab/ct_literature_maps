@@ -1,0 +1,182 @@
+import { useState, useEffect, useCallback } from "react";
+import SemanticScatter from "./components/SemanticScatter";
+import ClusterLegend from "./components/ClusterLegend";
+import CitationNetwork from "./components/CitationNetwork";
+import InjectPaper from "./components/InjectPaper";
+import {
+  ViewTab,
+  SemanticMap,
+  SemanticPaper,
+  SizeMode,
+  InjectedPaper,
+} from "./types";
+import "./App.css";
+
+export default function App() {
+  const [tab, setTab] = useState<ViewTab>("semantic");
+  const [semanticData, setSemanticData] = useState<SemanticMap | null>(null);
+  const [selectedParent, setSelectedParent] = useState<number | null>(null);
+  const [selectedCluster, setSelectedCluster] = useState<number | null>(null);
+  const [selectedPaper, setSelectedPaper] = useState<SemanticPaper | null>(null);
+  const [sizeMode, setSizeMode] = useState<SizeMode>("inGraph");
+  const [showMyPapers, setShowMyPapers] = useState(true);
+  const [injectedPaper, setInjectedPaper] = useState<InjectedPaper | null>(null);
+  const [isEmbedding, setIsEmbedding] = useState(false);
+  const [citationCount, setCitationCount] = useState(0);
+
+  useEffect(() => {
+    fetch("./data/semantic-map.json")
+      .then((r) => r.json())
+      .then((data) => setSemanticData(data));
+  }, []);
+
+  const handleInject = useCallback((paper: InjectedPaper) => {
+    setInjectedPaper(paper);
+    setIsEmbedding(false);
+    setTab("semantic");
+  }, []);
+
+  if (!semanticData) {
+    return (
+      <div className="app loading-app">
+        <h1>Loading Literature Map...</h1>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app">
+      <header className="top-bar">
+        <div className="top-bar-left">
+          <h1>CT Reconstruction Literature Map</h1>
+          <span className="subtitle">
+            AI-Driven Computed Tomography Reconstruction &amp; Enhancement
+          </span>
+        </div>
+        <nav className="view-tabs">
+          <button
+            className={tab === "semantic" ? "active" : ""}
+            onClick={() => setTab("semantic")}
+          >
+            Semantic Map
+          </button>
+          <button
+            className={tab === "citation" ? "active" : ""}
+            onClick={() => setTab("citation")}
+          >
+            Citation Network
+          </button>
+          <button
+            className={tab === "inject" ? "active" : ""}
+            onClick={() => setTab("inject")}
+          >
+            Place Your Paper
+          </button>
+        </nav>
+        <div className="top-bar-right">
+          <span className="paper-count">
+            {tab === "citation"
+              ? `${citationCount.toLocaleString()} papers`
+              : `${semanticData.totalPapers.toLocaleString()} papers`}
+          </span>
+        </div>
+      </header>
+
+      <div className="main-layout">
+        {(tab === "semantic" || tab === "inject") && (
+          <div className="sidebar">
+            {tab === "inject" ? (
+              <InjectPaper
+                semanticMap={semanticData}
+                onInject={handleInject}
+                onClear={() => setInjectedPaper(null)}
+                injectedPaper={injectedPaper}
+                isLoading={isEmbedding}
+              />
+            ) : (
+              <ClusterLegend
+                parentClusters={semanticData.parentClusters}
+                clusters={semanticData.clusters}
+                selectedParent={selectedParent}
+                selectedCluster={selectedCluster}
+                onSelectParent={(id) => {
+                  setSelectedParent(id);
+                  setSelectedCluster(null);
+                }}
+                onSelectCluster={setSelectedCluster}
+                totalPapers={semanticData.totalPapers}
+                noiseCount={semanticData.noiseCount}
+                sizeMode={sizeMode}
+                onSizeModeChange={setSizeMode}
+                showMyPapers={showMyPapers}
+                onShowMyPapersChange={setShowMyPapers}
+              />
+            )}
+          </div>
+        )}
+
+        <div className="viz-area">
+          {(tab === "semantic" || tab === "inject") && (
+            <SemanticScatter
+              data={semanticData}
+              selectedParent={selectedParent}
+              selectedCluster={selectedCluster}
+              sizeMode={sizeMode}
+              showMyPapers={showMyPapers}
+              injectedPaper={injectedPaper}
+              onSelectPaper={setSelectedPaper}
+            />
+          )}
+          {tab === "citation" && (
+            <CitationNetwork onPaperCount={setCitationCount} />
+          )}
+        </div>
+
+        {(tab === "semantic" || tab === "inject") && (
+          <div className="detail-panel">
+            {selectedPaper ? (
+              <>
+                <div className="detail-header">
+                  <span className="detail-year">{selectedPaper.year}</span>
+                  {selectedPaper.isSeed && <span className="seed-badge">Seed</span>}
+                  {selectedPaper.isMyPaper && <span className="my-badge">My Paper</span>}
+                </div>
+                <h2 className="detail-title">{selectedPaper.title}</h2>
+                <div className="detail-meta">
+                  <div className="meta-item">
+                    <span className="meta-label">Global Citations</span>
+                    <span className="meta-value">{selectedPaper.citedByCount?.toLocaleString() ?? "?"}</span>
+                  </div>
+                  <div className="meta-item">
+                    <span className="meta-label">In-Field Citations</span>
+                    <span className="meta-value">{selectedPaper.inGraphCitations}</span>
+                  </div>
+                  <div className="meta-item">
+                    <span className="meta-label">Topic</span>
+                    <span className="meta-value">
+                      {semanticData.parentClusters.find((pc) => pc.id === selectedPaper.parentCluster)?.label ?? "—"}
+                    </span>
+                  </div>
+                  <div className="meta-item">
+                    <span className="meta-label">Sub-cluster</span>
+                    <span className="meta-value">
+                      {semanticData.clusters.find((c) => c.id === selectedPaper.cluster)?.label ?? "—"}
+                    </span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="empty-detail">
+                <p>Click a paper to see details</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <footer className="footer">
+        Falk L. Wiegmann &amp; Nancy L. Ford — University of British Columbia — 2026
+      </footer>
+    </div>
+  );
+}
