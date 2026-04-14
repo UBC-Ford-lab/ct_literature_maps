@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import SemanticScatter from "./components/SemanticScatter";
 import ClusterLegend from "./components/ClusterLegend";
-import CitationNetwork from "./components/CitationNetwork";
+import CitationNetwork, { CitationSelectedPaper } from "./components/CitationNetwork";
 import InjectPaper from "./components/InjectPaper";
 import {
   ViewTab,
@@ -19,10 +19,11 @@ export default function App() {
   const [selectedCluster, setSelectedCluster] = useState<number | null>(null);
   const [selectedPaper, setSelectedPaper] = useState<SemanticPaper | null>(null);
   const [sizeMode, setSizeMode] = useState<SizeMode>("inGraph");
-  const [showMyPapers, setShowMyPapers] = useState(true);
+  const [showMyPapers, setShowMyPapers] = useState(false);
   const [injectedPaper, setInjectedPaper] = useState<InjectedPaper | null>(null);
   const [isEmbedding, setIsEmbedding] = useState(false);
   const [citationCount, setCitationCount] = useState(0);
+  const [citationSelected, setCitationSelected] = useState<CitationSelectedPaper | null>(null);
 
   useEffect(() => {
     fetch("./data/semantic-map.json")
@@ -128,7 +129,7 @@ export default function App() {
             />
           )}
           {tab === "citation" && (
-            <CitationNetwork onPaperCount={setCitationCount} />
+            <CitationNetwork onPaperCount={setCitationCount} onSelectPaper={setCitationSelected} />
           )}
         </div>
 
@@ -168,6 +169,75 @@ export default function App() {
             ) : (
               <div className="empty-detail">
                 <p>Click a paper to see details</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === "citation" && (
+          <div className="detail-panel">
+            {citationSelected ? (
+              <>
+                <div className="detail-header">
+                  <span className="detail-year">{citationSelected.year}</span>
+                </div>
+                <h2 className="detail-title">{citationSelected.title}</h2>
+                <div className="detail-meta">
+                  <div className="meta-item">
+                    <span className="meta-label">Global Citations</span>
+                    <span className="meta-value">{citationSelected.citedByCount?.toLocaleString() ?? "?"}</span>
+                  </div>
+                  <div className="meta-item">
+                    <span className="meta-label">Connections</span>
+                    <span className="meta-value">
+                      {citationSelected.references.length} refs, {citationSelected.citedBy.length} cited-by
+                    </span>
+                  </div>
+                </div>
+
+                {citationSelected.references.length > 0 && (
+                  <div className="citation-connections">
+                    <h4>
+                      <span className="dir-line" style={{ background: "#4f8ff7" }} />
+                      References ({citationSelected.references.length})
+                    </h4>
+                    <ul>
+                      {citationSelected.references.slice(0, 20).map((r) => (
+                        <li key={r.id}>
+                          <span className="conn-year">[{r.year}]</span>
+                          <span className="conn-title">{r.title}</span>
+                        </li>
+                      ))}
+                      {citationSelected.references.length > 20 && (
+                        <li className="conn-more">...and {citationSelected.references.length - 20} more</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+
+                {citationSelected.citedBy.length > 0 && (
+                  <div className="citation-connections">
+                    <h4>
+                      <span className="dir-line" style={{ background: "#f7734f" }} />
+                      Cited By ({citationSelected.citedBy.length})
+                    </h4>
+                    <ul>
+                      {citationSelected.citedBy.slice(0, 20).map((r) => (
+                        <li key={r.id}>
+                          <span className="conn-year">[{r.year}]</span>
+                          <span className="conn-title">{r.title}</span>
+                        </li>
+                      ))}
+                      {citationSelected.citedBy.length > 20 && (
+                        <li className="conn-more">...and {citationSelected.citedBy.length - 20} more</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="empty-detail">
+                <p>Click a node to see paper details and citation connections</p>
               </div>
             )}
           </div>

@@ -1,23 +1,98 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Graph from "graphology";
 import Sigma from "sigma";
 import { CitationGraph } from "../types";
 
+export interface CitationSelectedPaper {
+  id: string;
+  title: string;
+  year: number;
+  citedByCount: number | null;
+  community: number;
+  references: { id: string; title: string; year: number }[];
+  citedBy: { id: string; title: string; year: number }[];
+}
+
 interface Props {
   onPaperCount: (count: number) => void;
+  onSelectPaper: (paper: CitationSelectedPaper | null) => void;
 }
 
 const CATEGORY_COLORS: Record<number, string> = {
-  0: "#e6a020", // CT Undersampling & SR
-  1: "#a855f7", // AI & DL Foundations
-  2: "#14b8a6", // CT Reconstruction Theory
+  0: "#e6a020",
+  1: "#a855f7",
+  2: "#14b8a6",
 };
 
-export default function CitationNetwork({ onPaperCount }: Props) {
+
+export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sigmaRef = useRef<Sigma | null>(null);
+  const graphRef = useRef<Graph | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+
+  // Store selection state in refs for reducers
+  const selectedRef = useRef<string | null>(null);
+  const neighborsRef = useRef<Set<string>>(new Set());
+  const outEdgesRef = useRef<Set<string>>(new Set());
+  const inEdgesRef = useRef<Set<string>>(new Set());
+
+  // Handle selection changes
+  const handleSelect = useCallback((nodeId: string | null) => {
+    const graph = graphRef.current;
+    const sigma = sigmaRef.current;
+    if (!graph || !sigma) return;
+
+    selectedRef.current = nodeId;
+    neighborsRef.current = new Set();
+    outEdgesRef.current = new Set();
+    inEdgesRef.current = new Set();
+
+    if (nodeId && graph.hasNode(nodeId)) {
+      graph.forEachOutEdge(nodeId, (edge, _attr, _src, target) => {
+        neighborsRef.current.add(target);
+        outEdgesRef.current.add(edge);
+      });
+      graph.forEachInEdge(nodeId, (edge, _attr, source) => {
+        neighborsRef.current.add(source);
+        inEdgesRef.current.add(edge);
+      });
+
+      // Build paper info for detail panel
+      const refs = [...outEdgesRef.current].map((e) => {
+        const target = graph.target(e);
+        return {
+          id: target,
+          title: graph.getNodeAttribute(target, "fullTitle") || "",
+          year: graph.getNodeAttribute(target, "year") || 0,
+        };
+      });
+      const citedBy = [...inEdgesRef.current].map((e) => {
+        const source = graph.source(e);
+        return {
+          id: source,
+          title: graph.getNodeAttribute(source, "fullTitle") || "",
+          year: graph.getNodeAttribute(source, "year") || 0,
+        };
+      });
+
+      onSelectPaper({
+        id: nodeId,
+        title: graph.getNodeAttribute(nodeId, "fullTitle") || "",
+        year: graph.getNodeAttribute(nodeId, "year") || 0,
+        citedByCount: graph.getNodeAttribute(nodeId, "citedByCount") ?? null,
+        community: graph.getNodeAttribute(nodeId, "communityId") ?? 0,
+        references: refs.sort((a, b) => b.year - a.year),
+        citedBy: citedBy.sort((a, b) => b.year - a.year),
+      });
+    } else {
+      onSelectPaper(null);
+    }
+
+    setSelectedNode(nodeId);
+    sigma.refresh();
+  }, [onSelectPaper]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -34,7 +109,6 @@ export default function CitationNetwork({ onPaperCount }: Props) {
       const graph = new Graph();
       const seen = new Set<string>();
 
-      // Compute in-degree
       const inDeg = new Map<string, number>();
       for (const n of data.nodes) inDeg.set(n.id, 0);
       for (const e of data.edges) {
@@ -54,9 +128,13 @@ export default function CitationNetwork({ onPaperCount }: Props) {
           y: n.y ?? (Math.random() - 0.5) * 100,
           size,
           color,
+          origColor: color,
           label: deg >= 5 ? (n.title.length > 50 ? n.title.slice(0, 47) + "..." : n.title) : "",
           fullTitle: n.title,
           year: n.year,
+          citedByCount: n.citedByCount,
+          communityId: n.community ?? 0,
+          inDegree: deg,
         });
       }
 
@@ -66,6 +144,7 @@ export default function CitationNetwork({ onPaperCount }: Props) {
         }
       }
 
+      graphRef.current = graph;
       setLoading(false);
 
       const sigma = new Sigma(graph, containerRef.current!, {
@@ -77,25 +156,66 @@ export default function CitationNetwork({ onPaperCount }: Props) {
         labelFont: "Inter, system-ui, sans-serif",
         defaultEdgeColor: "#1e1e40",
         defaultEdgeType: "arrow",
-        nodeReducer: (_node, data) => {
-          return { ...data };
+
+        nodeReducer: (node, data) => {
+          const sel = selectedRef.current;
+          if (!sel) return { ...data };
+
+          if (node === sel) {
+            return {
+              ...data,
+              color: "#ffd700",
+              size: (data.size || 3) * 1.8,
+              zIndex: 30,
+              label: graphRef.current?.getNodeAttribute(node, "fullTitle") || data.label,
+            };
+          }
+          if (neighborsRef.current.has(node)) {
+            return {
+              ...data,
+              zIndex: 10,
+              highlighted: true,
+              label: graphRef.current?.getNodeAttribute(node, "fullTitle") || data.label,
+            };
+          }
+          return {
+            ...data,
+            color: "#111122",
+            size: (data.size || 3) * 0.5,
+            label: "",
+            zIndex: -1,
+          };
         },
-        edgeReducer: (_edge, data) => {
-          return { ...data, hidden: false };
+
+        edgeReducer: (edge, data) => {
+          const sel = selectedRef.current;
+          if (!sel) return { ...data };
+
+          if (outEdgesRef.current.has(edge)) {
+            return { ...data, color: "#4f8ff7", size: 1.5, zIndex: 15 };
+          }
+          if (inEdgesRef.current.has(edge)) {
+            return { ...data, color: "#f7734f", size: 1.5, zIndex: 15 };
+          }
+          return { ...data, hidden: true };
         },
       });
 
       sigma.on("clickNode", ({ node }) => {
-        setSelectedTitle(graph.getNodeAttribute(node, "fullTitle") || null);
+        handleSelect(node === selectedRef.current ? null : node);
       });
-      sigma.on("enterNode", ({ node }) => {
-        const title = graph.getNodeAttribute(node, "fullTitle");
-        if (title) {
+      sigma.on("clickStage", () => {
+        handleSelect(null);
+      });
+      sigma.on("enterNode", () => {
+        if (!selectedRef.current) {
           sigma.setSetting("labelRenderedSizeThreshold", 0);
         }
       });
       sigma.on("leaveNode", () => {
-        sigma.setSetting("labelRenderedSizeThreshold", 6);
+        if (!selectedRef.current) {
+          sigma.setSetting("labelRenderedSizeThreshold", 6);
+        }
       });
 
       sigmaRef.current = sigma;
@@ -105,7 +225,7 @@ export default function CitationNetwork({ onPaperCount }: Props) {
       cancelled = true;
       sigmaRef.current?.kill();
     };
-  }, [onPaperCount]);
+  }, [onPaperCount, handleSelect]);
 
   return (
     <div style={{ width: "100%", height: "100%", position: "relative" }}>
@@ -113,16 +233,20 @@ export default function CitationNetwork({ onPaperCount }: Props) {
       {loading && (
         <div className="loading-overlay">Loading citation network...</div>
       )}
-      {selectedTitle && (
-        <div className="citation-tooltip">
-          {selectedTitle}
-          <button onClick={() => setSelectedTitle(null)}>x</button>
-        </div>
-      )}
       <div className="citation-legend">
         <div><span className="legend-dot" style={{ background: "#e6a020" }} /> CT Undersampling & SR</div>
         <div><span className="legend-dot" style={{ background: "#a855f7" }} /> AI & DL Foundations</div>
         <div><span className="legend-dot" style={{ background: "#14b8a6" }} /> CT Reconstruction Theory</div>
+        {selectedNode && (
+          <>
+            <div style={{ borderTop: "1px solid #2a2a4a", marginTop: 6, paddingTop: 6 }}>
+              <span className="legend-dot" style={{ background: "#4f8ff7", display: "inline-block", width: 16, height: 3, borderRadius: 1.5 }} /> References (cites)
+            </div>
+            <div>
+              <span className="legend-dot" style={{ background: "#f7734f", display: "inline-block", width: 16, height: 3, borderRadius: 1.5 }} /> Cited by
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
