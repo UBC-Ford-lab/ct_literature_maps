@@ -99,7 +99,31 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
 
     let cancelled = false;
 
+    // Wait until container has real dimensions before initializing Sigma
+    const container = containerRef.current;
+    const waitForSize = (): Promise<void> => {
+      return new Promise((resolve) => {
+        if (container.offsetWidth > 0 && container.offsetHeight > 0) {
+          resolve();
+          return;
+        }
+        const observer = new ResizeObserver((entries) => {
+          for (const entry of entries) {
+            if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+              observer.disconnect();
+              resolve();
+              return;
+            }
+          }
+        });
+        observer.observe(container);
+      });
+    };
+
     (async () => {
+      await waitForSize();
+      if (cancelled) return;
+
       const res = await fetch("./data/focused-graph.json");
       const data: CitationGraph = await res.json();
       if (cancelled) return;
@@ -220,16 +244,6 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
       });
 
       sigmaRef.current = sigma;
-
-      // Force Sigma to recalculate dimensions and re-center after the container is fully laid out
-      setTimeout(() => {
-        sigma.resize();
-        sigma.refresh();
-      }, 50);
-      setTimeout(() => {
-        sigma.resize();
-        sigma.refresh();
-      }, 300);
     })();
 
     return () => {
@@ -239,8 +253,8 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
   }, [onPaperCount, handleSelect]);
 
   return (
-    <div style={{ width: "100%", height: "100%", position: "relative" }}>
-      <div ref={containerRef} style={{ width: "100%", height: "100%", background: "#0a0a14" }} />
+    <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden" }}>
+      <div ref={containerRef} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "#0a0a14" }} />
       {loading && (
         <div className="loading-overlay">Loading citation network...</div>
       )}
