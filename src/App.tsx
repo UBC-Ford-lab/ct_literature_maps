@@ -24,6 +24,7 @@ export default function App() {
   const [isEmbedding, setIsEmbedding] = useState(false);
   const [citationCount, setCitationCount] = useState(0);
   const [citationSelected, setCitationSelected] = useState<CitationSelectedPaper | null>(null);
+  const [showWelcome, setShowWelcome] = useState(true);
 
   useEffect(() => {
     fetch("./data/semantic-map.json")
@@ -247,6 +248,47 @@ export default function App() {
       <footer className="footer">
         Falk L. Wiegmann &amp; Nancy L. Ford — University of British Columbia — 2026
       </footer>
+
+      {showWelcome && (
+        <div className="welcome-overlay" onClick={() => setShowWelcome(false)}>
+          <div className="welcome-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>CT-scans Image Processing Literature Map</h2>
+            <p>
+              An interactive map of <strong>~5,000 research papers</strong> in
+              AI-driven computed tomography reconstruction and enhancement.
+            </p>
+            <div className="welcome-features">
+              <div className="welcome-feature">
+                <strong>Semantic Map</strong>
+                <span>
+                  Papers positioned by topic similarity. Papers about the same
+                  thing are close together — even if they never cite each other.
+                </span>
+              </div>
+              <div className="welcome-feature">
+                <strong>Citation Network</strong>
+                <span>
+                  The same papers, but positioned by who cites whom. Click any
+                  paper to see its references (blue) and who cites it (orange).
+                </span>
+              </div>
+              <div className="welcome-feature">
+                <strong>Place Your Paper</strong>
+                <span>
+                  Paste your title and abstract to see where your paper falls on
+                  the map. Runs entirely in your browser — nothing is sent to a server.
+                </span>
+              </div>
+            </div>
+            <p className="welcome-hint">
+              Zoom with scroll, pan by dragging, click papers for details.
+            </p>
+            <button className="welcome-close" onClick={() => setShowWelcome(false)}>
+              Explore the map
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
