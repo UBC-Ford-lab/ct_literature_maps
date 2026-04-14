@@ -90,7 +90,7 @@ export default function ClusterLegend({
           onChange={(e) => onShowMyPapersChange(e.target.checked)}
         />
         <span className="my-papers-dot" />
-        <span>Show my papers</span>
+        <span>Show Falk L. Wiegmann's papers</span>
       </label>
       <div className="legend-list">
         {sorted.map((pc) => {
