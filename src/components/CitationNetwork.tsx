@@ -172,10 +172,11 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
       graphRef.current = graph;
       setLoading(false);
 
+      // Wait one more frame for React to commit the DOM update (loading=false removes overlay)
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      if (cancelled) return;
+
       const sigma = new Sigma(graph, containerRef.current!, {
-        allowInvalidContainer: true,
-        autoCenter: false,
-        autoRescale: false,
         renderLabels: true,
         labelRenderedSizeThreshold: 6,
         labelSize: 10,
@@ -247,61 +248,23 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
 
       sigmaRef.current = sigma;
 
-      // Manually center and fit the graph since autoRescale doesn't work reliably in tabs
-      const fitGraph = () => {
-        const container = containerRef.current;
-        if (!container) return;
-
-        const w = container.offsetWidth;
-        const h = container.offsetHeight;
-        if (w === 0 || h === 0) return;
-
-        // Compute graph bounding box
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        graph.forEachNode((_n, attrs) => {
-          minX = Math.min(minX, attrs.x);
-          maxX = Math.max(maxX, attrs.x);
-          minY = Math.min(minY, attrs.y);
-          maxY = Math.max(maxY, attrs.y);
-        });
-
-        const graphW = maxX - minX || 1;
-        const graphH = maxY - minY || 1;
-        const graphCx = (minX + maxX) / 2;
-        const graphCy = (minY + maxY) / 2;
-
-        // Sigma's camera x/y are in a coordinate system where the graph
-        // is normalized to fit the viewport. With autoRescale off, we need
-        // to set the camera to look at the center of the graph, with a ratio
-        // that fits everything in view.
-        // In Sigma without autoRescale, camera (0,0) = top-left of graph bbox,
-        // and 1 unit = 1 pixel. So we need to:
-        // - Center: camera.x = graphCx, camera.y = graphCy
-        // - Ratio: how many graph-units per pixel. To fit graphW into w pixels:
-        //   ratio = graphW / w (approximately)
-        const padding = 1.2; // 20% padding
-        const ratioX = (graphW * padding) / w;
-        const ratioY = (graphH * padding) / h;
-        const ratio = Math.max(ratioX, ratioY);
-
-        sigma.getCamera().setState({
-          x: graphCx,
-          y: graphCy,
-          ratio,
-          angle: 0,
-        });
+      // Watch for container resizes and re-trigger Sigma's resize
+      const ro = new ResizeObserver(() => {
+        sigma.resize();
         sigma.refresh();
-      };
+      });
+      ro.observe(containerRef.current!);
 
-      // Try fitting multiple times as layout settles
-      requestAnimationFrame(fitGraph);
-      setTimeout(fitGraph, 100);
-      setTimeout(fitGraph, 500);
+      // Store for cleanup
+      (sigma as any)._resizeObserver = ro;
     })();
 
     return () => {
       cancelled = true;
-      sigmaRef.current?.kill();
+      if (sigmaRef.current) {
+        (sigmaRef.current as any)._resizeObserver?.disconnect();
+        sigmaRef.current.kill();
+      }
     };
   }, [onPaperCount, handleSelect]);
 
