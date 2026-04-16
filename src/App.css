@@ -267,46 +267,22 @@
 /* ── Welcome Modal ── */
 .welcome-overlay {
   position: fixed; inset: 0; z-index: 1000;
-  background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.2);
   display: flex; align-items: center; justify-content: center;
-  animation: fadeIn 0.3s ease;
 }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
 .welcome-modal {
-  background: var(--bg-secondary); border: 1px solid var(--border);
-  border-radius: 16px; padding: 32px 36px; max-width: 520px; width: 90%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-  animation: slideUp 0.3s ease;
+  background: #fff; border: 1px solid var(--border);
+  border-radius: 12px; padding: 28px 32px; max-width: 420px; width: 90%;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
 }
-@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
 .welcome-modal h2 {
-  font-size: 20px; font-weight: 700; margin-bottom: 10px;
-  background: linear-gradient(135deg, #e6a020, #a855f7, #14b8a6);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-size: 17px; font-weight: 700; margin-bottom: 12px; color: var(--text-primary);
 }
-.welcome-modal > p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px; }
-
-.welcome-features {
-  display: flex; flex-direction: column; gap: 10px;
-  margin-bottom: 16px;
-}
-.welcome-feature {
-  display: flex; flex-direction: column; gap: 2px;
-  padding: 10px 14px; background: var(--bg-surface); border-radius: 8px;
-}
-.welcome-feature strong { font-size: 13px; color: var(--text-primary); }
-.welcome-feature span { font-size: 11px; color: var(--text-secondary); line-height: 1.5; }
-
-.welcome-hint { font-size: 11px; color: var(--text-muted); text-align: center; margin-bottom: 16px; }
-
+.welcome-modal > p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px; }
 .welcome-close {
-  display: block; width: 100%; padding: 10px; border: none; border-radius: 8px;
-  background: linear-gradient(135deg, #4f8ff7, #a855f7);
-  color: white; font-size: 14px; font-weight: 600; font-family: inherit;
-  cursor: pointer; transition: opacity 0.15s;
+  display: block; width: 100%; padding: 9px; border: none; border-radius: 6px;
+  background: var(--accent); color: white; font-size: 13px; font-weight: 600;
+  font-family: inherit; cursor: pointer; margin-top: 4px;
 }
 .welcome-close:hover { opacity: 0.9; }
 

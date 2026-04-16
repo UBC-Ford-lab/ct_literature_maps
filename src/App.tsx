@@ -268,39 +268,15 @@ export default function App() {
       {showWelcome && (
         <div className="welcome-overlay" onClick={() => setShowWelcome(false)}>
           <div className="welcome-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>CT-scans Image Processing Literature Map</h2>
+            <h2>CT Reconstruction Literature Map</h2>
             <p>
-              An interactive map of <strong>~5,000 research papers</strong> in
-              AI-driven computed tomography reconstruction and enhancement.
+              ~5,000 papers on AI-driven CT reconstruction. Scroll to zoom, drag to pan, click any paper for details.
             </p>
-            <div className="welcome-features">
-              <div className="welcome-feature">
-                <strong>Semantic Map</strong>
-                <span>
-                  Papers positioned by topic similarity. Papers about the same
-                  thing are close together — even if they never cite each other.
-                </span>
-              </div>
-              <div className="welcome-feature">
-                <strong>Citation Network</strong>
-                <span>
-                  The same papers, but positioned by who cites whom. Click any
-                  paper to see its references (blue) and who cites it (orange).
-                </span>
-              </div>
-              <div className="welcome-feature">
-                <strong>Place Your Paper</strong>
-                <span>
-                  Paste your title and abstract to see where your paper falls on
-                  the map. Runs entirely in your browser — nothing is sent to a server.
-                </span>
-              </div>
-            </div>
-            <p className="welcome-hint">
-              Zoom with scroll, pan by dragging, click papers for details.
+            <p>
+              Use the tabs to switch between the semantic map, citation network, publication trends, or to place your own paper on the map.
             </p>
             <button className="welcome-close" onClick={() => setShowWelcome(false)}>
-              Explore the map
+              Got it
             </button>
           </div>
         </div>
