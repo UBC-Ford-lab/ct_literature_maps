@@ -47,7 +47,7 @@ export interface SemanticMap {
 
 export type SizeMode = "global" | "inGraph";
 
-export type ViewTab = "semantic" | "citation" | "inject";
+export type ViewTab = "semantic" | "citation" | "inject" | "trends";
 
 // ── Citation Graph Types ─────────────────────────────────
 

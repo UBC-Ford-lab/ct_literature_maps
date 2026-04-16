@@ -3,6 +3,7 @@ import SemanticScatter from "./components/SemanticScatter";
 import ClusterLegend from "./components/ClusterLegend";
 import CitationNetwork, { CitationSelectedPaper } from "./components/CitationNetwork";
 import InjectPaper from "./components/InjectPaper";
+import ResearchTrends from "./components/ResearchTrends";
 import {
   ViewTab,
   SemanticMap,
@@ -69,6 +70,12 @@ export default function App() {
             Citation Network
           </button>
           <button
+            className={tab === "trends" ? "active" : ""}
+            onClick={() => setTab("trends")}
+          >
+            Research Trends
+          </button>
+          <button
             className={tab === "inject" ? "active" : ""}
             onClick={() => setTab("inject")}
           >
@@ -91,7 +98,7 @@ export default function App() {
       </header>
 
       <div className="main-layout">
-        {(tab === "semantic" || tab === "inject") && (
+        {(tab === "semantic" || tab === "inject") && tab !== "trends" && (
           <div className="sidebar">
             {tab === "inject" ? (
               <InjectPaper
@@ -137,6 +144,9 @@ export default function App() {
           )}
           {tab === "citation" && (
             <CitationNetwork onPaperCount={setCitationCount} onSelectPaper={setCitationSelected} />
+          )}
+          {tab === "trends" && (
+            <ResearchTrends data={semanticData} />
           )}
         </div>
 
