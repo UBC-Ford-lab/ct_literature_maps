@@ -30,6 +30,8 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
   const graphRef = useRef<Graph | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [yearRange, setYearRange] = useState<[number, number]>([1970, 2026]);
+  const yearRangeRef = useRef<[number, number]>([1970, 2026]);
 
   const selectedRef = useRef<string | null>(null);
   const neighborsRef = useRef<Set<string>>(new Set());
@@ -161,7 +163,16 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
         stagePadding: 30,
 
         nodeReducer: (node, data) => {
+          const yr = graphRef.current?.getNodeAttribute(node, "year") || 0;
+          const [minY, maxY] = yearRangeRef.current;
+          const inRange = yr >= minY && yr <= maxY;
+
           const sel = selectedRef.current;
+
+          if (!inRange) {
+            return { ...data, hidden: true };
+          }
+
           if (!sel) return { ...data };
 
           if (node === sel) {
@@ -191,6 +202,17 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
         },
 
         edgeReducer: (edge, data) => {
+          // Hide edges where either endpoint is out of year range
+          const graph = graphRef.current;
+          if (graph) {
+            const [minY, maxY] = yearRangeRef.current;
+            const srcYear = graph.getNodeAttribute(graph.source(edge), "year") || 0;
+            const tgtYear = graph.getNodeAttribute(graph.target(edge), "year") || 0;
+            if (srcYear < minY || srcYear > maxY || tgtYear < minY || tgtYear > maxY) {
+              return { ...data, hidden: true };
+            }
+          }
+
           const sel = selectedRef.current;
           if (!sel) return { ...data };
 
@@ -241,6 +263,23 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
     };
   }, [onPaperCount, handleSelect]);
 
+  // Refresh Sigma when year range changes
+  useEffect(() => {
+    yearRangeRef.current = yearRange;
+    sigmaRef.current?.refresh();
+  }, [yearRange]);
+
+  const handleYearChange = (idx: 0 | 1, value: number) => {
+    setYearRange((prev) => {
+      const next: [number, number] = [...prev] as [number, number];
+      next[idx] = value;
+      if (next[0] > next[1]) {
+        next[idx === 0 ? 1 : 0] = value;
+      }
+      return next;
+    });
+  };
+
   return (
     <div style={{ width: "100%", height: "100%", background: "#ffffff" }}>
       <div ref={containerRef} style={{ width: "100%", height: "100%"}} />
@@ -261,6 +300,23 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
             </div>
           </>
         )}
+      </div>
+      <div className="citation-year-filter">
+        <span className="year-label">Year: {yearRange[0]} – {yearRange[1]}</span>
+        <input
+          type="range"
+          min={1970}
+          max={2026}
+          value={yearRange[0]}
+          onChange={(e) => handleYearChange(0, Number(e.target.value))}
+        />
+        <input
+          type="range"
+          min={1970}
+          max={2026}
+          value={yearRange[1]}
+          onChange={(e) => handleYearChange(1, Number(e.target.value))}
+        />
       </div>
     </div>
   );
