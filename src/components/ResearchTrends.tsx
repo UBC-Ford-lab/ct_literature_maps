@@ -44,7 +44,7 @@ export default function ResearchTrends({ data }: Props) {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   // Compute stats
-  const { parentYearCounts, subStats, yearRange, insights } = useMemo(() => {
+  const { parentYearCounts, subStats, yearRange } = useMemo(() => {
     const minY = 2010;
     const maxY = 2026;
 
@@ -103,27 +103,7 @@ export default function ResearchTrends({ data }: Props) {
       });
     }
 
-    // Insights
-    const insights: string[] = [];
-    const fastestGrowing = [...subStats].sort((a, b) => b.recentPct - a.recentPct)[0];
-    if (fastestGrowing) {
-      insights.push(
-        `${fastestGrowing.label}: ${fastestGrowing.recentPct.toFixed(0)}% of papers since 2023`
-      );
-    }
-    const highestCited = [...subStats].sort((a, b) => b.avgCitations - a.avgCitations)[0];
-    if (highestCited) {
-      insights.push(
-        `${highestCited.label}: highest avg citations (${highestCited.avgCitations.toFixed(0)})`
-      );
-    }
-    const totalRecent = data.papers.filter((p) => p.year >= 2023).length;
-    const totalAll = data.papers.length;
-    insights.push(
-      `${totalRecent.toLocaleString()} of ${totalAll.toLocaleString()} papers (${((totalRecent / totalAll) * 100).toFixed(0)}%) published since 2023`
-    );
-
-    return { parentYearCounts, subStats, yearRange: [minY, maxY] as [number, number], insights };
+    return { parentYearCounts, subStats, yearRange: [minY, maxY] as [number, number] };
   }, [data]);
 
   // Stacked area traces
