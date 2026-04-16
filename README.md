@@ -10,7 +10,7 @@ An interactive map of ~5,000 papers in AI-driven computed tomography reconstruct
 
 This is an interactive tool for exploring the research landscape of AI methods applied to CT image reconstruction — sparse-view, limited-angle, low-dose denoising, super-resolution, and the deep learning foundations behind them.
 
-There are two views and one tool:
+There are three views and one tool:
 
 ### Semantic Map
 
@@ -24,6 +24,12 @@ The same papers, but now positioned by citation relationships. Edges show who re
 
 ![Citation network with directional edge highlighting](examples/citation_network_example.png)
 
+### Research Trends
+
+Publication growth over time for each topic and sub-cluster. A stacked area chart shows which areas are expanding, and a sortable table ranks sub-topics by growth rate, recency, and average citations. Hover any row to overlay its trend line on the chart.
+
+![Research trends showing publication growth by topic](examples/research_trends_example.png)
+
 ### Place Your Paper
 
 Paste your paper's title and abstract and the tool will embed it in your browser and show you where it falls on the map — which cluster it belongs to and which existing papers are most similar. No data is sent to any server; the embedding model runs locally via WebAssembly.
@@ -35,7 +41,7 @@ Paste your paper's title and abstract and the tool will embed it in your browser
 1. Go to the **[live map](https://ubc-ford-lab.github.io/ct_literature_maps/)**
 2. Zoom, pan, and click papers to explore
 3. Use the sidebar to filter by topic or toggle dot sizing between global and in-field citations
-4. Switch between Semantic Map and Citation Network tabs
+4. Switch between Semantic Map, Citation Network, and Research Trends tabs
 5. Click **Place Your Paper** to see where your own work fits
 
 ---
