@@ -94,23 +94,30 @@ function buildNoveltyHeatmap(papers: SemanticPaper[], gridSize: number = 120) {
     zmin: 2012,
     zmax: 2026,
     colorscale: [
-      [0,    "#0a0a14"],   // 2012 — matches background exactly
-      [0.15, "#0c0c2a"],   // 2014
-      [0.3,  "#1a1068"],   // 2016 — deep blue
-      [0.45, "#3a1878"],   // 2018 — purple
-      [0.6,  "#6a2060"],   // 2020 — magenta
-      [0.75, "#a03040"],   // 2022 — warm red
-      [0.9,  "#d05020"],   // 2024 — orange
-      [1,    "#f07010"],   // 2026 — bright amber
+      [0,    "#ffffff"],   // 2012 — matches white background
+      [0.1,  "#f4f4ff"],   // 2013
+      [0.2,  "#e0e4f8"],   // 2015 — very light blue
+      [0.35, "#c0c8ee"],   // 2017 — light blue
+      [0.5,  "#b0a0d8"],   // 2019 — lavender (shifted up)
+      [0.65, "#d89080"],   // 2021 — warm coral
+      [0.8,  "#d06030"],   // 2023 — orange
+      [0.9,  "#c04018"],   // 2025 — deep orange
+      [1,    "#a03010"],   // 2026 — deep red
     ],
     contours: {
       coloring: "heatmap" as const,
-      showlines: false,
+      showlines: true,
+      showlabels: false,
     },
+    line: {
+      width: 0.3,
+      color: "rgba(0,0,0,0.04)",
+    },
+    ncontours: 30,
     showscale: false,
     colorbar: {
     },
-    opacity: 0.4,
+    opacity: 0.45,
     hoverinfo: "skip" as const,
     showlegend: false,
   };
@@ -158,7 +165,7 @@ export default function SemanticScatter({
         name: `Unclustered (${noise.length})`,
         marker: {
           size: noise.map((p) => sizeScale(sizeMode === "inGraph" ? p.inGraphCitations : p.citedByCount)),
-          color: "#222233",
+          color: "#c0c0d0",
           opacity: selectedParent !== null || selectedCluster !== null ? 0.05 : 0.2,
         },
         hoverinfo: "text" as const,
@@ -192,7 +199,7 @@ export default function SemanticScatter({
           size: papers.map((p) => sizeScale(sizeMode === "inGraph" ? p.inGraphCitations : p.citedByCount)),
           color: hasClusterFilter
             ? papers.map((p) =>
-                p.cluster === selectedCluster ? color : "#111122"
+                p.cluster === selectedCluster ? color : "#e0e0e8"
               )
             : color,
           opacity: isParentSelected ? 0.8 : 0.06,
@@ -245,7 +252,7 @@ export default function SemanticScatter({
         textposition: "bottom center" as const,
         textfont: {
           size: 9,
-          color: "#ff8fa8",
+          color: "#cc1040",
           family: "Inter, system-ui, sans-serif",
         },
         hoverinfo: "skip" as const,
@@ -263,10 +270,10 @@ export default function SemanticScatter({
         type: "scatter" as const,
         name: "Your Paper",
         textposition: "top center" as const,
-        textfont: { size: 11, color: "#00ff88", family: "Inter, system-ui, sans-serif" },
+        textfont: { size: 11, color: "#008844", family: "Inter, system-ui, sans-serif" },
         marker: {
           size: 18,
-          color: "#00ff88",
+          color: "#008844",
           symbol: "star",
           line: { width: 2, color: "#ffffff" },
         },
@@ -280,7 +287,7 @@ export default function SemanticScatter({
         mode: "text" as const,
         type: "scatter" as const,
         textposition: "bottom center" as const,
-        textfont: { size: 9, color: "#00cc66", family: "Inter, system-ui, sans-serif" },
+        textfont: { size: 9, color: "#006633", family: "Inter, system-ui, sans-serif" },
         hoverinfo: "skip" as const,
         showlegend: false,
       });
@@ -294,19 +301,19 @@ export default function SemanticScatter({
       data={traces}
       layout={{
         // @ts-expect-error plotly template string
-        template: "plotly_dark",
-        paper_bgcolor: "#0a0a14",
-        plot_bgcolor: "#0a0a14",
+        template: "plotly_white",
+        paper_bgcolor: "#ffffff",
+        plot_bgcolor: "#ffffff",
         margin: { t: 10, b: 10, l: 10, r: 10 },
         xaxis: { visible: false, fixedrange: false },
         yaxis: { visible: false, fixedrange: false, scaleanchor: "x" },
         showlegend: false,
         hoverlabel: {
-          bgcolor: "#1a1a2e",
-          bordercolor: "#3a3a6a",
+          bgcolor: "#ffffff",
+          bordercolor: "#dde0e8",
           font: {
             size: 11,
-            color: "#e0e0f0",
+            color: "#1a1a2e",
             family: "Inter, system-ui, sans-serif",
           },
         },

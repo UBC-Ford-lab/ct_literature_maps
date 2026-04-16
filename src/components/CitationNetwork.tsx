@@ -24,7 +24,6 @@ const CATEGORY_COLORS: Record<number, string> = {
   2: "#14b8a6",
 };
 
-
 export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sigmaRef = useRef<Sigma | null>(null);
@@ -32,13 +31,11 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
   const [loading, setLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
-  // Store selection state in refs for reducers
   const selectedRef = useRef<string | null>(null);
   const neighborsRef = useRef<Set<string>>(new Set());
   const outEdgesRef = useRef<Set<string>>(new Set());
   const inEdgesRef = useRef<Set<string>>(new Set());
 
-  // Handle selection changes
   const handleSelect = useCallback((nodeId: string | null) => {
     const graph = graphRef.current;
     const sigma = sigmaRef.current;
@@ -59,7 +56,6 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
         inEdgesRef.current.add(edge);
       });
 
-      // Build paper info for detail panel
       const refs = [...outEdgesRef.current].map((e) => {
         const target = graph.target(e);
         return {
@@ -98,32 +94,9 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
     if (!containerRef.current) return;
 
     let cancelled = false;
-
-    // Wait until container has real dimensions before initializing Sigma
-    const container = containerRef.current;
-    const waitForSize = (): Promise<void> => {
-      return new Promise((resolve) => {
-        if (container.offsetWidth > 0 && container.offsetHeight > 0) {
-          resolve();
-          return;
-        }
-        const observer = new ResizeObserver((entries) => {
-          for (const entry of entries) {
-            if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
-              observer.disconnect();
-              resolve();
-              return;
-            }
-          }
-        });
-        observer.observe(container);
-      });
-    };
+    let sigmaInstance: Sigma | null = null;
 
     (async () => {
-      await waitForSize();
-      if (cancelled) return;
-
       const res = await fetch("./data/focused-graph.json");
       const data: CitationGraph = await res.json();
       if (cancelled) return;
@@ -147,13 +120,11 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
         const size = citations <= 0 ? 1 : Math.max(1, Math.min(12, Math.sqrt(citations) * 0.07));
         const color = CATEGORY_COLORS[n.community ?? 0] || "#666";
 
-        // Scale up positions so graph fills the viewport (Sigma works best with larger coords)
         graph.addNode(n.id, {
           x: (n.x ?? (Math.random() - 0.5)) * 500,
           y: (n.y ?? (Math.random() - 0.5)) * 500,
           size,
           color,
-          origColor: color,
           label: deg >= 5 ? (n.title.length > 50 ? n.title.slice(0, 47) + "..." : n.title) : "",
           fullTitle: n.title,
           year: n.year,
@@ -165,25 +136,29 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
 
       for (const e of data.edges) {
         if (graph.hasNode(e.from) && graph.hasNode(e.to) && !graph.hasDirectedEdge(e.from, e.to)) {
-          graph.addDirectedEdge(e.from, e.to, { size: 0.3, color: "#1e1e40" });
+          graph.addDirectedEdge(e.from, e.to, { size: 0.3, color: "#d0d0e0" });
         }
       }
 
       graphRef.current = graph;
       setLoading(false);
 
-      // Wait one more frame for React to commit the DOM update (loading=false removes overlay)
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      // Wait for the container to be fully laid out before creating Sigma
+      await new Promise<void>((resolve) => setTimeout(resolve, 300));
       if (cancelled) return;
 
-      const sigma = new Sigma(graph, containerRef.current!, {
+      const container = containerRef.current;
+      if (!container || container.offsetWidth === 0 || container.offsetHeight === 0) return;
+
+      sigmaInstance = new Sigma(graph, container, {
         renderLabels: true,
         labelRenderedSizeThreshold: 6,
         labelSize: 10,
-        labelColor: { color: "#c0c0d8" },
+        labelColor: { color: "#2a2a40" },
         labelFont: "Inter, system-ui, sans-serif",
-        defaultEdgeColor: "#1e1e40",
+        defaultEdgeColor: "#d0d0e0",
         defaultEdgeType: "arrow",
+        stagePadding: 30,
 
         nodeReducer: (node, data) => {
           const sel = selectedRef.current;
@@ -208,7 +183,7 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
           }
           return {
             ...data,
-            color: "#111122",
+            color: "#e0e0e8",
             size: (data.size || 3) * 0.5,
             label: "",
             zIndex: -1,
@@ -229,48 +204,46 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
         },
       });
 
-      sigma.on("clickNode", ({ node }) => {
+      sigmaInstance.on("clickNode", ({ node }) => {
         handleSelect(node === selectedRef.current ? null : node);
       });
-      sigma.on("clickStage", () => {
+      sigmaInstance.on("clickStage", () => {
         handleSelect(null);
       });
-      sigma.on("enterNode", () => {
+      sigmaInstance.on("enterNode", () => {
         if (!selectedRef.current) {
-          sigma.setSetting("labelRenderedSizeThreshold", 0);
+          sigmaInstance?.setSetting("labelRenderedSizeThreshold", 0);
         }
       });
-      sigma.on("leaveNode", () => {
+      sigmaInstance.on("leaveNode", () => {
         if (!selectedRef.current) {
-          sigma.setSetting("labelRenderedSizeThreshold", 6);
+          sigmaInstance?.setSetting("labelRenderedSizeThreshold", 6);
         }
       });
 
-      sigmaRef.current = sigma;
+      sigmaRef.current = sigmaInstance;
 
-      // Watch for container resizes and re-trigger Sigma's resize
-      const ro = new ResizeObserver(() => {
-        sigma.resize();
-        sigma.refresh();
-      });
-      ro.observe(containerRef.current!);
-
-      // Store for cleanup
-      (sigma as any)._resizeObserver = ro;
+      // Set camera to the correct centered position
+      setTimeout(() => {
+        sigmaInstance?.getCamera().setState({
+          x: 0.3689,
+          y: 0.6714,
+          ratio: 0.2128,
+          angle: 0,
+        });
+      }, 100);
     })();
 
     return () => {
       cancelled = true;
-      if (sigmaRef.current) {
-        (sigmaRef.current as any)._resizeObserver?.disconnect();
-        sigmaRef.current.kill();
-      }
+      sigmaInstance?.kill();
+      sigmaRef.current = null;
     };
   }, [onPaperCount, handleSelect]);
 
   return (
-    <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden" }}>
-      <div ref={containerRef} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "#0a0a14" }} />
+    <div style={{ width: "100%", height: "100%", background: "#ffffff" }}>
+      <div ref={containerRef} style={{ width: "100%", height: "100%"}} />
       {loading && (
         <div className="loading-overlay">Loading citation network...</div>
       )}
@@ -280,7 +253,7 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
         <div><span className="legend-dot" style={{ background: "#14b8a6" }} /> CT Reconstruction Theory</div>
         {selectedNode && (
           <>
-            <div style={{ borderTop: "1px solid #2a2a4a", marginTop: 6, paddingTop: 6 }}>
+            <div style={{ borderTop: "1px solid #dde0e8", marginTop: 6, paddingTop: 6 }}>
               <span className="legend-dot" style={{ background: "#4f8ff7", display: "inline-block", width: 16, height: 3, borderRadius: 1.5 }} /> References (cites)
             </div>
             <div>

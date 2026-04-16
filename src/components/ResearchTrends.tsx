@@ -31,6 +31,7 @@ interface SubClusterStats {
   growthRate: number;
   recentPct: number;
   avgCitations: number;
+  stdCitations: number;
   yearCounts: Record<number, number>;
 }
 
@@ -73,8 +74,10 @@ export default function ResearchTrends({ data }: Props) {
       const y2025_26 = members.filter((p) => p.year >= 2025).length;
       const recent = y2023_24 + y2025_26;
       const growthRate = y2021_22 > 0 ? recent / y2021_22 : recent > 0 ? 10 : 0;
-      const avgCitations =
-        members.reduce((s, p) => s + (p.citedByCount || 0), 0) / members.length;
+      const citationValues = members.map((p) => p.citedByCount || 0);
+      const avgCitations = citationValues.reduce((s, v) => s + v, 0) / members.length;
+      const variance = citationValues.reduce((s, v) => s + (v - avgCitations) ** 2, 0) / members.length;
+      const stdCitations = Math.sqrt(variance);
 
       const yearCounts: Record<number, number> = {};
       for (let y = minY; y <= maxY; y++) yearCounts[y] = 0;
@@ -95,6 +98,7 @@ export default function ResearchTrends({ data }: Props) {
         growthRate,
         recentPct: (recent / members.length) * 100,
         avgCitations,
+        stdCitations,
         yearCounts,
       });
     }
@@ -158,8 +162,8 @@ export default function ResearchTrends({ data }: Props) {
           name: sub.label,
           type: "scatter" as const,
           mode: "lines+markers" as const,
-          line: { width: 3, color: "#ffffff" },
-          marker: { size: 5, color: "#ffffff" },
+          line: { width: 3, color: "#1a1a2e" },
+          marker: { size: 5, color: "#1a1a2e" },
           hovertemplate: `%{x}: %{y} papers<br>${sub.label}<extra></extra>`,
         });
       }
@@ -202,13 +206,6 @@ export default function ResearchTrends({ data }: Props) {
           sub-cluster row to overlay its trend line.
         </p>
 
-        <div className="trends-insights">
-          <h4>Key Insights</h4>
-          {insights.map((insight, i) => (
-            <div key={i} className="insight-item">{insight}</div>
-          ))}
-        </div>
-
         <div className="trends-filter">
           <h4>Filter by Category</h4>
           <button
@@ -241,32 +238,32 @@ export default function ResearchTrends({ data }: Props) {
             data={areaTraces}
             layout={{
               // @ts-expect-error plotly template
-              template: "plotly_dark",
-              paper_bgcolor: "#0a0a14",
-              plot_bgcolor: "#0a0a14",
+              template: "plotly_white",
+              paper_bgcolor: "#ffffff",
+              plot_bgcolor: "#ffffff",
               margin: { t: 20, b: 40, l: 50, r: 20 },
               xaxis: {
-                title: { text: "Year", font: { size: 11, color: "#686888" } },
-                tickfont: { size: 10, color: "#9898b8" },
-                gridcolor: "#1a1a2e",
+                title: { text: "Year", font: { size: 11, color: "#5a5a78" } },
+                tickfont: { size: 10, color: "#5a5a78" },
+                gridcolor: "#e8e8f0",
                 range: [2010, 2026],
                 dtick: 2,
               },
               yaxis: {
-                title: { text: "Papers Published", font: { size: 11, color: "#686888" } },
-                tickfont: { size: 10, color: "#9898b8" },
-                gridcolor: "#1a1a2e",
+                title: { text: "Papers Published", font: { size: 11, color: "#5a5a78" } },
+                tickfont: { size: 10, color: "#5a5a78" },
+                gridcolor: "#e8e8f0",
               },
               legend: {
-                font: { size: 9, color: "#9898b8" },
-                bgcolor: "rgba(10,10,20,0.8)",
-                bordercolor: "#2a2a4a",
+                font: { size: 9, color: "#1a1a2e" },
+                bgcolor: "rgba(255,255,255,0.9)",
+                bordercolor: "#dde0e8",
                 borderwidth: 1,
               },
               hoverlabel: {
-                bgcolor: "#1a1a2e",
-                bordercolor: "#3a3a6a",
-                font: { size: 11, color: "#e0e0f0" },
+                bgcolor: "#e8e8f0",
+                bordercolor: "#dde0e8",
+                font: { size: 11, color: "#1a1a2e" },
               },
               showlegend: true,
             }}
@@ -327,7 +324,7 @@ export default function ResearchTrends({ data }: Props) {
                     </span>
                   </td>
                   <td className="num">{s.recentPct.toFixed(0)}%</td>
-                  <td className="num">{s.avgCitations.toFixed(0)}</td>
+                  <td className="num">{s.avgCitations.toFixed(0)} <span className="std-val">{"\u00B1"} {s.stdCitations.toFixed(0)}</span></td>
                 </tr>
               ))}
             </tbody>
