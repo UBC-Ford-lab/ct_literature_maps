@@ -44,7 +44,6 @@ export default function ResearchTrends({ data }: Props) {
 
   // Compute stats
   const { parentYearCounts, subStats, yearRange, insights } = useMemo(() => {
-    const years = data.papers.map((p) => p.year).filter((y) => y >= 2010 && y <= 2026);
     const minY = 2010;
     const maxY = 2026;
 

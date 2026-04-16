@@ -98,7 +98,7 @@ export default function App() {
       </header>
 
       <div className="main-layout">
-        {(tab === "semantic" || tab === "inject") && tab !== "trends" && (
+        {(tab === "semantic" || tab === "inject") && (
           <div className="sidebar">
             {tab === "inject" ? (
               <InjectPaper
