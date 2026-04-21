@@ -9,6 +9,7 @@ interface Props {
   sizeMode: SizeMode;
   showMyPapers: boolean;
   injectedPaper?: InjectedPaper | null;
+  markedPapers?: Set<string>;
   onSelectPaper: (paper: SemanticPaper | null) => void;
 }
 
@@ -130,6 +131,7 @@ export default function SemanticScatter({
   sizeMode,
   showMyPapers,
   injectedPaper,
+  markedPapers,
   onSelectPaper,
 }: Props) {
   const traces = useMemo(() => {
@@ -215,6 +217,43 @@ export default function SemanticScatter({
     // My papers layer — on top with permanent labels
     const myIds = new Set(data.myPaperIds || []);
     const myPapers = data.papers.filter((p) => myIds.has(p.id));
+    // Marked papers layer
+    if (markedPapers && markedPapers.size > 0) {
+      const marked = data.papers.filter((p) => markedPapers.has(p.id));
+      if (marked.length > 0) {
+        allTraces.push({
+          x: marked.map((p) => p.x),
+          y: marked.map((p) => p.y),
+          text: marked.map((p) => `<b>${p.title}</b><br>${p.authors || ""}<br>Year: ${p.year}`),
+          customdata: marked,
+          mode: "markers+text" as const,
+          type: "scatter" as const,
+          name: "Marked",
+          textposition: "top center" as const,
+          textfont: { size: 9, color: "#d63384", family: "Inter, system-ui, sans-serif" },
+          marker: {
+            size: 16,
+            color: "#d63384",
+            symbol: "circle",
+            line: { width: 3, color: "#ffffff" },
+          },
+          hoverinfo: "text" as const,
+          showlegend: false,
+        });
+        allTraces.push({
+          x: marked.map((p) => p.x),
+          y: marked.map((p) => p.y),
+          text: marked.map((p) => p.title.length > 35 ? p.title.slice(0, 32) + "..." : p.title),
+          mode: "text" as const,
+          type: "scatter" as const,
+          textposition: "bottom center" as const,
+          textfont: { size: 8, color: "#d63384", family: "Inter, system-ui, sans-serif" },
+          hoverinfo: "skip" as const,
+          showlegend: false,
+        });
+      }
+    }
+
     if (showMyPapers && myPapers.length > 0) {
       const labels = data.myPaperLabels || {};
       allTraces.push({
@@ -294,7 +333,7 @@ export default function SemanticScatter({
     }
 
     return allTraces;
-  }, [data, selectedParent, selectedCluster, sizeMode, showMyPapers, injectedPaper]);
+  }, [data, selectedParent, selectedCluster, sizeMode, showMyPapers, injectedPaper, markedPapers]);
 
   return (
     <Plot

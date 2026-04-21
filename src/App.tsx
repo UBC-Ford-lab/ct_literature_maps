@@ -4,6 +4,10 @@ import ClusterLegend from "./components/ClusterLegend";
 import CitationNetwork, { CitationSelectedPaper } from "./components/CitationNetwork";
 import InjectPaper from "./components/InjectPaper";
 import ResearchTrends from "./components/ResearchTrends";
+import SearchBar from "./components/SearchBar";
+import MarkedDropdown from "./components/MarkedDropdown";
+import AuthorView from "./components/AuthorView";
+import ClickableAuthors from "./components/ClickableAuthors";
 import {
   ViewTab,
   SemanticMap,
@@ -26,6 +30,31 @@ export default function App() {
   const [citationCount, setCitationCount] = useState(0);
   const [citationSelected, setCitationSelected] = useState<CitationSelectedPaper | null>(null);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [citationSearchId, setCitationSearchId] = useState<string | null>(null);
+  const [viewingAuthor, setViewingAuthor] = useState<string | null>(null);
+  const [markedPapers, setMarkedPapers] = useState<Set<string>>(new Set());
+
+  const toggleMarkAll = useCallback((ids: string[]) => {
+    setMarkedPapers((prev) => {
+      const next = new Set(prev);
+      const allMarked = ids.every((id) => next.has(id));
+      if (allMarked) {
+        ids.forEach((id) => next.delete(id));
+      } else {
+        ids.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleMark = useCallback((id: string) => {
+    setMarkedPapers((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     fetch("./data/semantic-map.json")
@@ -38,6 +67,14 @@ export default function App() {
     setIsEmbedding(false);
     setTab("semantic");
   }, []);
+
+  const handleSearch = useCallback((paper: SemanticPaper) => {
+    if (tab === "semantic" || tab === "inject") {
+      setSelectedPaper(paper);
+    } else if (tab === "citation") {
+      setCitationSearchId(paper.id);
+    }
+  }, [tab]);
 
   if (!semanticData) {
     return (
@@ -83,6 +120,17 @@ export default function App() {
           </button>
         </nav>
         <div className="top-bar-right">
+          {(tab === "semantic" || tab === "citation") && semanticData && (
+            <>
+              <SearchBar papers={semanticData.papers} onSelect={handleSearch} onSelectAuthor={setViewingAuthor} />
+              <MarkedDropdown
+                papers={semanticData.papers}
+                markedIds={markedPapers}
+                onRemove={toggleMark}
+                onClearAll={() => setMarkedPapers(new Set())}
+              />
+            </>
+          )}
           <span className="paper-count">
             {tab === "citation"
               ? `${citationCount.toLocaleString()} papers`
@@ -139,11 +187,12 @@ export default function App() {
               sizeMode={sizeMode}
               showMyPapers={showMyPapers}
               injectedPaper={injectedPaper}
+              markedPapers={markedPapers}
               onSelectPaper={setSelectedPaper}
             />
           )}
           {tab === "citation" && (
-            <CitationNetwork onPaperCount={setCitationCount} onSelectPaper={setCitationSelected} />
+            <CitationNetwork onPaperCount={setCitationCount} onSelectPaper={setCitationSelected} searchNodeId={citationSearchId} onSearchHandled={() => setCitationSearchId(null)} markedPapers={markedPapers} />
           )}
           {tab === "trends" && (
             <ResearchTrends data={semanticData} />
@@ -152,7 +201,17 @@ export default function App() {
 
         {(tab === "semantic" || tab === "inject") && (
           <div className="detail-panel">
-            {selectedPaper ? (
+            {viewingAuthor ? (
+              <AuthorView
+                authorName={viewingAuthor}
+                papers={semanticData.papers}
+                markedPapers={markedPapers}
+                onToggleMark={toggleMark}
+                onMarkAll={toggleMarkAll}
+                onBack={() => setViewingAuthor(null)}
+                onSelectPaper={(p) => { setSelectedPaper(p); setViewingAuthor(null); }}
+              />
+            ) : selectedPaper ? (
               <>
                 <div className="detail-header">
                   <span className="detail-year">{selectedPaper.year}</span>
@@ -182,6 +241,15 @@ export default function App() {
                     </span>
                   </div>
                 </div>
+                {selectedPaper.authors && (
+                  <ClickableAuthors authors={selectedPaper.authors} onClickAuthor={setViewingAuthor} />
+                )}
+                <button
+                  className={`mark-btn ${markedPapers.has(selectedPaper.id) ? "marked" : ""}`}
+                  onClick={() => toggleMark(selectedPaper.id)}
+                >
+                  {markedPapers.has(selectedPaper.id) ? "Unmark on map" : "Mark on map"}
+                </button>
               </>
             ) : (
               <div className="empty-detail">
@@ -193,7 +261,17 @@ export default function App() {
 
         {tab === "citation" && (
           <div className="detail-panel">
-            {citationSelected ? (
+            {viewingAuthor ? (
+              <AuthorView
+                authorName={viewingAuthor}
+                papers={semanticData.papers}
+                markedPapers={markedPapers}
+                onToggleMark={toggleMark}
+                onMarkAll={toggleMarkAll}
+                onBack={() => setViewingAuthor(null)}
+                onSelectPaper={(p) => { setCitationSearchId(p.id); setViewingAuthor(null); }}
+              />
+            ) : citationSelected ? (
               <>
                 <div className="detail-header">
                   <span className="detail-year">{citationSelected.year}</span>
@@ -211,6 +289,18 @@ export default function App() {
                     </span>
                   </div>
                 </div>
+                {(() => {
+                  const sem = semanticData.papers.find((p) => p.id === citationSelected.id);
+                  return sem?.authors ? (
+                    <ClickableAuthors authors={sem.authors} onClickAuthor={setViewingAuthor} />
+                  ) : null;
+                })()}
+                <button
+                  className={`mark-btn ${markedPapers.has(citationSelected.id) ? "marked" : ""}`}
+                  onClick={() => toggleMark(citationSelected.id)}
+                >
+                  {markedPapers.has(citationSelected.id) ? "Unmark on map" : "Mark on map"}
+                </button>
 
                 {citationSelected.references.length > 0 && (
                   <div className="citation-connections">

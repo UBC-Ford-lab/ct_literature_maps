@@ -14,6 +14,7 @@ export interface SemanticPaper {
   parentCluster: number;
   hasAbstract: boolean;
   inGraphCitations: number;
+  authors?: string;
 }
 
 export interface SemanticCluster {

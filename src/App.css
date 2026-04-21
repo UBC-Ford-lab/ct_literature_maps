@@ -50,6 +50,131 @@
 .help-btn:hover { background: #e8ecf4; color: var(--text-primary); border-color: var(--accent); }
 .top-bar-right { display: flex; align-items: center; gap: 8px; }
 
+/* Search */
+.search-wrapper { position: relative; }
+.search-input {
+  width: 200px; padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg-surface); color: var(--text-primary); font-size: 12px;
+  font-family: inherit; outline: none; transition: border-color 0.15s;
+}
+.search-input:focus { border-color: var(--accent); width: 280px; }
+.search-input::placeholder { color: var(--text-muted); }
+.search-dropdown {
+  position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1); max-height: 360px; overflow-y: auto;
+  z-index: 100; min-width: 350px;
+}
+.search-result {
+  padding: 8px 12px; cursor: pointer; display: flex; flex-direction: column;
+  gap: 2px; border-bottom: 1px solid var(--border); transition: background 0.1s;
+}
+.search-result:last-child { border-bottom: none; }
+.search-result:hover { background: var(--bg-surface); }
+.search-title { font-size: 12px; color: var(--text-primary); line-height: 1.3; }
+.detail-authors { font-size: 11px; color: var(--text-secondary); margin-top: 8px; line-height: 1.4; }
+.mark-btn {
+  display: block; width: 100%; padding: 7px; margin-top: 10px; border-radius: 6px;
+  font-size: 12px; font-weight: 500; font-family: inherit; cursor: pointer;
+  border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-secondary);
+  transition: all 0.15s;
+}
+.mark-btn:hover { border-color: #d63384; color: #d63384; }
+.mark-btn.marked { background: #d63384; color: #fff; border-color: #d63384; }
+
+/* Marked dropdown */
+.marked-dropdown-wrapper { position: relative; }
+.marked-btn {
+  display: flex; align-items: center; gap: 5px; padding: 5px 10px;
+  border: 1px solid #d63384; border-radius: 6px; background: transparent;
+  color: #d63384; font-size: 11px; font-weight: 600; font-family: inherit;
+  cursor: pointer; transition: all 0.15s;
+}
+.marked-btn:hover { background: #fdf0f4; }
+.marked-dot { width: 7px; height: 7px; border-radius: 50%; background: #d63384; }
+.marked-dropdown {
+  position: absolute; top: 100%; right: 0; margin-top: 4px; width: 340px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1); max-height: 400px; overflow-y: auto;
+  z-index: 100;
+}
+.marked-dropdown-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+  font-size: 11px; font-weight: 600; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.marked-clear {
+  border: none; background: none; color: #d63384; font-size: 10px;
+  font-family: inherit; cursor: pointer; font-weight: 600;
+}
+.marked-clear:hover { text-decoration: underline; }
+.marked-item {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  border-bottom: 1px solid var(--border); transition: background 0.1s;
+}
+.marked-item:last-child { border-bottom: none; }
+.marked-item:hover { background: var(--bg-surface); }
+.marked-item-info { flex: 1; min-width: 0; }
+.marked-item-title {
+  display: block; font-size: 11px; color: var(--text-primary);
+  line-height: 1.3; overflow: hidden; text-overflow: ellipsis;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.marked-item-meta { font-size: 9px; color: var(--text-muted); }
+.marked-remove {
+  border: none; background: none; color: var(--text-muted); font-size: 18px;
+  cursor: pointer; padding: 0 4px; flex-shrink: 0; line-height: 1;
+}
+.marked-remove:hover { color: #d63384; }
+
+/* Clickable authors */
+.clickable-authors { line-height: 1.6; }
+.author-link {
+  border: none; background: none; color: var(--accent); font-size: 11px;
+  font-family: inherit; cursor: pointer; padding: 0; text-decoration: none;
+}
+.author-link:hover { text-decoration: underline; }
+
+/* Author view */
+.author-view { padding: 4px 0; }
+.author-back {
+  border: none; background: none; color: var(--accent); font-size: 12px;
+  font-family: inherit; cursor: pointer; padding: 0; margin-bottom: 8px;
+}
+.author-back:hover { text-decoration: underline; }
+.author-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.author-count { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; }
+.author-papers { display: flex; flex-direction: column; gap: 2px; margin-top: 12px; }
+.author-paper-item {
+  display: flex; align-items: center; gap: 6px; padding: 6px 8px;
+  border-radius: 6px; border-bottom: 1px solid var(--border);
+}
+.author-paper-item:hover { background: var(--bg-surface); }
+.author-paper-info { flex: 1; min-width: 0; cursor: pointer; }
+.author-paper-title {
+  display: block; font-size: 11px; color: var(--text-primary); line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.author-paper-meta { font-size: 9px; color: var(--text-muted); }
+.author-paper-mark {
+  border: none; background: none; font-size: 14px; cursor: pointer;
+  color: var(--text-muted); flex-shrink: 0; padding: 0 2px;
+}
+.author-paper-mark:hover { color: #d63384; }
+.author-paper-mark.marked { color: #d63384; }
+
+.search-section-header {
+  padding: 6px 12px; font-size: 9px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--text-muted); background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+}
+.author-result { flex-direction: row !important; align-items: center; justify-content: space-between; }
+.search-author-name { font-size: 12px; color: var(--text-primary); font-weight: 500; }
+.search-authors { font-size: 10px; color: var(--text-secondary); }
+.search-meta { font-size: 10px; color: var(--text-muted); }
+
 /* Main layout */
 .main-layout { display: flex; flex: 1; overflow: hidden; }
 

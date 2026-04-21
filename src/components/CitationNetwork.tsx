@@ -16,6 +16,9 @@ export interface CitationSelectedPaper {
 interface Props {
   onPaperCount: (count: number) => void;
   onSelectPaper: (paper: CitationSelectedPaper | null) => void;
+  searchNodeId?: string | null;
+  onSearchHandled?: () => void;
+  markedPapers?: Set<string>;
 }
 
 const CATEGORY_COLORS: Record<number, string> = {
@@ -24,7 +27,7 @@ const CATEGORY_COLORS: Record<number, string> = {
   2: "#14b8a6",
 };
 
-export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) {
+export default function CitationNetwork({ onPaperCount, onSelectPaper, searchNodeId, onSearchHandled, markedPapers }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sigmaRef = useRef<Sigma | null>(null);
   const graphRef = useRef<Graph | null>(null);
@@ -34,6 +37,7 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
   const yearRangeRef = useRef<[number, number]>([1970, 2026]);
 
   const selectedRef = useRef<string | null>(null);
+  const markedRef = useRef<Set<string>>(new Set());
   const neighborsRef = useRef<Set<string>>(new Set());
   const outEdgesRef = useRef<Set<string>>(new Set());
   const inEdgesRef = useRef<Set<string>>(new Set());
@@ -91,6 +95,20 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
     setSelectedNode(nodeId);
     sigma.refresh();
   }, [onSelectPaper]);
+
+  // Sync marked papers ref and refresh
+  useEffect(() => {
+    markedRef.current = markedPapers || new Set();
+    sigmaRef.current?.refresh();
+  }, [markedPapers]);
+
+  // Handle search from top bar
+  useEffect(() => {
+    if (searchNodeId && graphRef.current?.hasNode(searchNodeId)) {
+      handleSelect(searchNodeId);
+      onSearchHandled?.();
+    }
+  }, [searchNodeId, handleSelect, onSearchHandled]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -153,6 +171,7 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
       if (!container || container.offsetWidth === 0 || container.offsetHeight === 0) return;
 
       sigmaInstance = new Sigma(graph, container, {
+        zIndex: true,
         renderLabels: true,
         labelRenderedSizeThreshold: 6,
         labelSize: 10,
@@ -167,10 +186,21 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
           const [minY, maxY] = yearRangeRef.current;
           const inRange = yr >= minY && yr <= maxY;
 
+          if (!inRange) return { ...data, hidden: true };
+
+          const isMarked = markedRef.current.has(node);
           const sel = selectedRef.current;
 
-          if (!inRange) {
-            return { ...data, hidden: true };
+          // Marked papers always stay visible and pink
+          if (isMarked) {
+            const isAlsoSelected = node === sel;
+            return {
+              ...data,
+              color: isAlsoSelected ? "#ffd700" : "#d63384",
+              size: (data.size || 3) * 2,
+              zIndex: isAlsoSelected ? 30 : 20,
+              label: graphRef.current?.getNodeAttribute(node, "fullTitle") || data.label,
+            };
           }
 
           if (!sel) return { ...data };
@@ -214,15 +244,41 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
           }
 
           const sel = selectedRef.current;
-          if (!sel) return { ...data };
+          const hasMarked = markedRef.current.size > 0;
 
-          if (outEdgesRef.current.has(edge)) {
-            return { ...data, color: "#4f8ff7", size: 1.5, zIndex: 15 };
+          // Check if this edge involves marked papers
+          let srcMarked = false, tgtMarked = false;
+          if (graph && hasMarked) {
+            srcMarked = markedRef.current.has(graph.source(edge));
+            tgtMarked = markedRef.current.has(graph.target(edge));
           }
-          if (inEdgesRef.current.has(edge)) {
-            return { ...data, color: "#f7734f", size: 1.5, zIndex: 15 };
+
+          // Check if this edge involves the selected node
+          const isOutgoing = sel && outEdgesRef.current.has(edge);
+          const isIncoming = sel && inEdgesRef.current.has(edge);
+
+          // Determine edge style — zIndex now works (setting enabled)
+          if (isOutgoing) {
+            return { ...data, color: "#4f8ff7", size: 2.5, zIndex: 30 };
           }
-          return { ...data, hidden: true };
+          if (isIncoming) {
+            return { ...data, color: "#f7734f", size: 2.5, zIndex: 30 };
+          }
+          if (srcMarked && tgtMarked) {
+            return { ...data, color: "#d63384", size: 2, zIndex: 20 };
+          }
+          if (srcMarked || tgtMarked) {
+            return { ...data, color: "#e899b8", size: 1.2, zIndex: 15 };
+          }
+
+          // If a node is selected, hide everything else
+          if (sel) return { ...data, hidden: true };
+          // If papers are marked, fade everything else
+          if (hasMarked) {
+            return { ...data, color: "#f0f0f4", size: 0.2, zIndex: 0 };
+          }
+
+          return { ...data };
         },
       });
 
@@ -248,9 +304,9 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper }: Props) 
       // Set camera to the correct centered position
       setTimeout(() => {
         sigmaInstance?.getCamera().setState({
-          x: 0.3689,
-          y: 0.6714,
-          ratio: 0.2128,
+          x: 0.5056,
+          y: 0.4302,
+          ratio: 0.2092,
           angle: 0,
         });
       }, 100);
