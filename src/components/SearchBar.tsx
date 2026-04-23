@@ -47,7 +47,16 @@ export default function SearchBar({ papers, onSelect, onSelectAuthor }: Props) {
     // Find matching authors
     const authorResults: AuthorResult[] = [];
     for (const [name, count] of authorIndex) {
-      if (name.toLowerCase().includes(q)) {
+      // Match query words against author name words (word-boundary matching)
+      // "Rui Li" matches "Rui Li" but NOT "Rui Liu" or "Rui Liao"
+      const nameWords = name.toLowerCase().split(/[\s.]+/).filter(Boolean);
+      const qWords = q.split(/\s+/).filter(Boolean);
+      const matches = qWords.every((qw) =>
+        nameWords.some((nw) => nw === qw || (qw.length >= 2 && nw === qw))
+      );
+      // For single-word queries, allow prefix matching (typing "Rah" finds "Rahmim")
+      const singleWordPrefix = qWords.length === 1 && nameWords.some((nw) => nw.startsWith(qWords[0]));
+      if (matches || singleWordPrefix) {
         authorResults.push({ name, paperCount: count });
       }
     }
