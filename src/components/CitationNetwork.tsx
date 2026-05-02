@@ -21,10 +21,16 @@ interface Props {
   markedPapers?: Set<string>;
 }
 
-const CATEGORY_COLORS: Record<number, string> = {
-  0: "#e6a020",
-  1: "#a855f7",
-  2: "#14b8a6",
+const PARENT_COLORS: Record<number, string> = {
+  1: "#e6a020",
+  2: "#20b8e6",
+  3: "#e64a20",
+  4: "#a855f7",
+  5: "#22c55e",
+  6: "#3b82f6",
+  7: "#f472b6",
+  8: "#14b8a6",
+  9: "#94a3b8",
 };
 
 export default function CitationNetwork({ onPaperCount, onSelectPaper, searchNodeId, onSearchHandled, markedPapers }: Props) {
@@ -37,6 +43,7 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper, searchNod
   const yearRangeRef = useRef<[number, number]>([1970, 2026]);
   const [showCamDebug, setShowCamDebug] = useState(false);
   const [camState, setCamState] = useState<{ x: number; y: number; ratio: number } | null>(null);
+  const [parentLabels, setParentLabels] = useState<Record<number, string>>({});
 
   const selectedRef = useRef<string | null>(null);
   const markedRef = useRef<Set<string>>(new Set());
@@ -119,9 +126,27 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper, searchNod
     let sigmaInstance: Sigma | null = null;
 
     (async () => {
-      const res = await fetch("./data/focused-graph.json");
-      const data: CitationGraph = await res.json();
+      const [graphRes, semRes] = await Promise.all([
+        fetch("./data/focused-graph.json"),
+        fetch("./data/semantic-map.json"),
+      ]);
+      const data: CitationGraph = await graphRes.json();
+      const semMap = await semRes.json();
       if (cancelled) return;
+
+      // Map node id → parentCluster (from semantic map)
+      const parentClusterMap = new Map<string, number>();
+      for (const p of semMap.papers || []) {
+        if (p.parentCluster !== undefined && p.parentCluster !== null) {
+          parentClusterMap.set(p.id, p.parentCluster);
+        }
+      }
+      // Capture parent labels for the legend
+      const labels: Record<number, string> = {};
+      for (const pc of semMap.parentClusters || []) {
+        labels[pc.id] = pc.label;
+      }
+      setParentLabels(labels);
 
       onPaperCount(data.totalNodes);
 
@@ -140,7 +165,8 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper, searchNod
         const deg = inDeg.get(n.id) || 0;
         const citations = n.citedByCount || 0;
         const size = citations <= 0 ? 1 : Math.max(1, Math.min(12, Math.sqrt(citations) * 0.07));
-        const color = CATEGORY_COLORS[n.community ?? 0] || "#666";
+        const parentCluster = parentClusterMap.get(n.id);
+        const color = (parentCluster !== undefined && PARENT_COLORS[parentCluster]) || "#999";
 
         graph.addNode(n.id, {
           x: (n.x ?? (Math.random() - 0.5)) * 500,
@@ -152,13 +178,14 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper, searchNod
           year: n.year,
           citedByCount: n.citedByCount,
           communityId: n.community ?? 0,
+          parentCluster: parentCluster ?? -1,
           inDegree: deg,
         });
       }
 
       for (const e of data.edges) {
         if (graph.hasNode(e.from) && graph.hasNode(e.to) && !graph.hasDirectedEdge(e.from, e.to)) {
-          graph.addDirectedEdge(e.from, e.to, { size: 0.3, color: "#d0d0e0" });
+          graph.addDirectedEdge(e.from, e.to, { size: 0.4, color: "#e8ecf2" });
         }
       }
 
@@ -179,7 +206,7 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper, searchNod
         labelSize: 10,
         labelColor: { color: "#2a2a40" },
         labelFont: "Inter, system-ui, sans-serif",
-        defaultEdgeColor: "#d0d0e0",
+        defaultEdgeColor: "#e8ecf2",
         defaultEdgeType: "arrow",
         stagePadding: 30,
 
@@ -261,16 +288,16 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper, searchNod
 
           // Determine edge style — zIndex now works (setting enabled)
           if (isOutgoing) {
-            return { ...data, color: "#4f8ff7", size: 2.5, zIndex: 30 };
+            return { ...data, color: "#4f8ff7", size: 0.8, zIndex: 30 };
           }
           if (isIncoming) {
-            return { ...data, color: "#f7734f", size: 2.5, zIndex: 30 };
+            return { ...data, color: "#f7734f", size: 0.8, zIndex: 30 };
           }
           if (srcMarked && tgtMarked) {
-            return { ...data, color: "#d63384", size: 2, zIndex: 20 };
+            return { ...data, color: "#d63384", size: 0.8, zIndex: 20 };
           }
           if (srcMarked || tgtMarked) {
-            return { ...data, color: "#e899b8", size: 1.2, zIndex: 15 };
+            return { ...data, color: "#e899b8", size: 0.6, zIndex: 15 };
           }
 
           // If a node is selected, hide everything else
@@ -306,9 +333,9 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper, searchNod
       // Set camera to the correct centered position
       setTimeout(() => {
         sigmaInstance?.getCamera().setState({
-          x: 0.5056,
-          y: 0.4302,
-          ratio: 0.2092,
+          x: 0.3808,
+          y: 0.5101,
+          ratio: 0.8944,
           angle: 0,
         });
       }, 100);
@@ -363,9 +390,14 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper, searchNod
         <div className="loading-overlay">Loading citation network...</div>
       )}
       <div className="citation-legend">
-        <div><span className="legend-dot" style={{ background: "#e6a020" }} /> CT Undersampling & SR</div>
-        <div><span className="legend-dot" style={{ background: "#a855f7" }} /> AI & DL Foundations</div>
-        <div><span className="legend-dot" style={{ background: "#14b8a6" }} /> CT Reconstruction Theory</div>
+        {Object.entries(PARENT_COLORS)
+          .filter(([id]) => parentLabels[Number(id)])
+          .map(([id, color]) => (
+            <div key={id}>
+              <span className="legend-dot" style={{ background: color }} />
+              {parentLabels[Number(id)]}
+            </div>
+          ))}
         {selectedNode && (
           <>
             <div style={{ borderTop: "1px solid #dde0e8", marginTop: 6, paddingTop: 6 }}>
