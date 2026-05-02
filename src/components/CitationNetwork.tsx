@@ -35,6 +35,8 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper, searchNod
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [yearRange, setYearRange] = useState<[number, number]>([1970, 2026]);
   const yearRangeRef = useRef<[number, number]>([1970, 2026]);
+  const [showCamDebug, setShowCamDebug] = useState(false);
+  const [camState, setCamState] = useState<{ x: number; y: number; ratio: number } | null>(null);
 
   const selectedRef = useRef<string | null>(null);
   const markedRef = useRef<Set<string>>(new Set());
@@ -325,6 +327,24 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper, searchNod
     sigmaRef.current?.refresh();
   }, [yearRange]);
 
+  // Subscribe to camera updates when debug overlay is on
+  useEffect(() => {
+    if (!showCamDebug) {
+      setCamState(null);
+      return;
+    }
+    const sigma = sigmaRef.current;
+    if (!sigma) return;
+    const cam = sigma.getCamera();
+    const update = () => {
+      const s = cam.getState();
+      setCamState({ x: s.x, y: s.y, ratio: s.ratio });
+    };
+    update();
+    cam.on("updated", update);
+    return () => { cam.off("updated", update); };
+  }, [showCamDebug]);
+
   const handleYearChange = (idx: 0 | 1, value: number) => {
     setYearRange((prev) => {
       const next: [number, number] = [...prev] as [number, number];
@@ -357,6 +377,18 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper, searchNod
           </>
         )}
       </div>
+      <button
+        className="cam-debug-toggle"
+        onClick={() => setShowCamDebug((v) => !v)}
+        title="Toggle camera coords overlay"
+      >
+        ⊕
+      </button>
+      {showCamDebug && camState && (
+        <div className="cam-debug-overlay">
+          Camera: x: {camState.x.toFixed(4)}, y: {camState.y.toFixed(4)}, ratio: {camState.ratio.toFixed(4)}
+        </div>
+      )}
       <div className="citation-year-filter">
         <span className="year-label">Year: {yearRange[0]} – {yearRange[1]}</span>
         <input

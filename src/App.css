@@ -317,6 +317,18 @@
   background: var(--accent); cursor: pointer; border: 2px solid #fff;
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
+.cam-debug-toggle {
+  position: absolute; bottom: 12px; right: 12px; width: 24px; height: 24px;
+  border-radius: 50%; border: 1px solid var(--border); background: rgba(255,255,255,0.95);
+  cursor: pointer; font-size: 14px; line-height: 1; padding: 0;
+  color: var(--text-secondary); display: flex; align-items: center; justify-content: center;
+}
+.cam-debug-toggle:hover { background: #fff; color: var(--accent); }
+.cam-debug-overlay {
+  position: absolute; bottom: 44px; right: 12px; background: rgba(255,255,255,0.95);
+  border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;
+  font-family: ui-monospace, monospace; font-size: 11px; color: var(--text-primary);
+}
 
 /* ── Research Trends ── */
 .trends-layout { display: flex; height: 100%; overflow: hidden; }
