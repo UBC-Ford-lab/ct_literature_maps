@@ -1,6 +1,17 @@
 // ── Semantic Map Types ────────────────────────────────────
 
+/**
+ * Research track used by the "show AI base" toggle.
+ *   ct   - CT / tomography reconstruction (no significant AI method)
+ *   both - CT / tomography that also uses an AI/ML method (overlap)
+ *   med  - non-CT medical reconstruction imaging (MRI / PET / US / EIT ...)
+ *   ai   - AI/ML/CV foundations, general super-resolution, generic methods
+ * The toggle hides only "ai"; the other three are CT-relevant.
+ */
+export type Track = "ct" | "both" | "med" | "ai";
+
 export interface SemanticPaper {
+  track?: Track;
   id: string;
   title: string;
   year: number;
@@ -54,6 +65,7 @@ export type ViewTab = "semantic" | "citation" | "inject" | "trends";
 
 export interface GraphNode {
   id: string;
+  track?: Track;
   title: string;
   year: number;
   category: string;

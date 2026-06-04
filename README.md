@@ -16,19 +16,19 @@ There are three views and one tool:
 
 Papers are positioned by what they're *about*, not by who cites whom. Each paper's title and abstract were embedded into 384-dimensional vectors using a sentence transformer (all-MiniLM-L6-v2), projected to 2D with UMAP, and clustered with HDBSCAN. Papers that discuss similar topics land near each other — even if they never cite one another.
 
-![Semantic map showing ~5,000 papers clustered by topic](examples/semantic_map_example.png)
+![Semantic map showing papers clustered by topic, shaded by average publication year](examples/semantic-map-example.svg)
 
 ### Citation Network
 
 The same papers, but now positioned by citation relationships. Edges show who references whom. Click any node to see its references (blue) and papers that cite it (orange).
 
-![Citation network with directional edge highlighting](examples/citation_network_example.png)
+![Citation network with edges colored by topic cluster](examples/citation-network-example.svg)
 
 ### Research Trends
 
 Publication growth over time for each topic and sub-cluster. A stacked area chart shows which areas are expanding, and a sortable table ranks sub-topics by growth rate, recency, and average citations. Hover any row to overlay its trend line on the chart.
 
-![Research trends showing publication growth by topic](examples/research_trends_example.png)
+![Research trends showing publication growth by topic](examples/research-trends-example.svg)
 
 ### Place Your Paper
 

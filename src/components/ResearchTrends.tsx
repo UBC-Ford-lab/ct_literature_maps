@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import Plot from "react-plotly.js";
 import { SemanticMap } from "../types";
+import { exportPlotlySVG } from "../utils/exportFigure";
 
 interface Props {
   data: SemanticMap;
@@ -38,6 +39,7 @@ interface SubClusterStats {
 type SortKey = "growthRate" | "recentPct" | "total" | "avgCitations" | "label";
 
 export default function ResearchTrends({ data }: Props) {
+  const graphDivRef = useRef<any>(null);
   const [selectedParent, setSelectedParent] = useState<number | null>(null);
   const [highlightCluster, setHighlightCluster] = useState<number | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("growthRate");
@@ -214,7 +216,16 @@ export default function ResearchTrends({ data }: Props) {
 
       <div className="trends-main">
         <div className="trends-chart">
+          <button
+            className="fig-export-btn fig-export-btn--left"
+            onClick={() => exportPlotlySVG(graphDivRef.current, "research-trends", 1200, 700)}
+            title="Download this chart as a vector SVG figure"
+          >
+            ⤓ SVG
+          </button>
           <Plot
+            onInitialized={(_, gd) => { graphDivRef.current = gd; }}
+            onUpdate={(_, gd) => { graphDivRef.current = gd; }}
             data={areaTraces}
             layout={{
               // @ts-expect-error plotly template
@@ -235,6 +246,10 @@ export default function ResearchTrends({ data }: Props) {
                 gridcolor: "#e8e8f0",
               },
               legend: {
+                x: 0.01,
+                y: 0.99,
+                xanchor: "left",
+                yanchor: "top",
                 font: { size: 9, color: "#1a1a2e" },
                 bgcolor: "rgba(255,255,255,0.9)",
                 bordercolor: "#dde0e8",

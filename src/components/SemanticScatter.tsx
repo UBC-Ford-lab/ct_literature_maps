@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import Plot from "react-plotly.js";
 import { SemanticMap, SemanticPaper, SizeMode, InjectedPaper } from "../types";
+import { exportPlotlySVG, PlotlyExportMutations } from "../utils/exportFigure";
 
 interface Props {
   data: SemanticMap;
@@ -8,6 +9,7 @@ interface Props {
   selectedCluster: number | null;
   sizeMode: SizeMode;
   showMyPapers: boolean;
+  showAiBase: boolean;
   injectedPaper?: InjectedPaper | null;
   markedPapers?: Set<string>;
   onSelectPaper: (paper: SemanticPaper | null) => void;
@@ -130,22 +132,90 @@ export default function SemanticScatter({
   selectedCluster,
   sizeMode,
   showMyPapers,
+  showAiBase,
   injectedPaper,
   markedPapers,
   onSelectPaper,
 }: Props) {
+  const graphDivRef = useRef<any>(null);
+
+  const handleExport = () => {
+    const gd = graphDivRef.current;
+    if (!gd) return;
+    // The year heatmap is the contour trace; enable its colorbar for the export.
+    const heatmapIdx = (gd.data || []).findIndex((t: any) => t.type === "contour");
+    const mut: PlotlyExportMutations = {
+      // Embed the cluster legend (bottom-right) and make room on the right for
+      // the colorbar so the figure is self-contained.
+      layoutApply: {
+        showlegend: true,
+        legend: {
+          x: 0.99,
+          y: 0.01,
+          xanchor: "right",
+          yanchor: "bottom",
+          bgcolor: "rgba(255,255,255,0.85)",
+          bordercolor: "#dde0e8",
+          borderwidth: 1,
+          font: { size: 11, color: "#1a1a2e", family: "Inter, system-ui, sans-serif" },
+        },
+      },
+      layoutRevert: { showlegend: false },
+    };
+    if (heatmapIdx >= 0) {
+      mut.traceIndices = [heatmapIdx];
+      mut.traceApply = {
+        showscale: true,
+        colorbar: {
+          title: {
+            text: "Avg. publication year",
+            side: "top",
+            font: { size: 11, color: "#1a1a2e", family: "Inter, system-ui, sans-serif" },
+          },
+          orientation: "h",
+          x: 0.01,
+          xanchor: "left",
+          y: 0.02,
+          yanchor: "bottom",
+          len: 0.38,
+          thickness: 13,
+          tickvals: [2012, 2015, 2018, 2021, 2024, 2026],
+          tickfont: { size: 10, color: "#5a5a78", family: "Inter, system-ui, sans-serif" },
+          outlinewidth: 1,
+          outlinecolor: "#dde0e8",
+        },
+      };
+      mut.traceRevert = { showscale: false, colorbar: {} };
+    }
+    // Fully vector, but optimized: markers -> <circle>, drop the ~0.04-opacity
+    // contour line overlay, trim coords to 1 dp. ~5 MB -> ~1.2 MB, no visible
+    // change (the heatmap color fill and all points/text stay).
+    exportPlotlySVG(gd, "semantic-map", 1100, 1000, mut, {
+      optimizeMarkers: true,
+      dropContourLines: true,
+      trimDecimals: 1,
+    });
+  };
+
   const traces = useMemo(() => {
     if (!data.papers.length) return [];
+
+    // When the AI-base toggle is off, drop AI-foundation papers entirely so
+    // they affect neither the scatter nor the year heatmap. Precomputed x/y of
+    // the remaining papers is unchanged, so CT-relevant clusters stay put.
+    const visiblePapers = showAiBase
+      ? data.papers
+      : data.papers.filter((p) => p.track !== "ai");
 
     const allTraces: any[] = [];
 
     // Heatmap background layer
-    const heatmap = buildNoveltyHeatmap(data.papers);
+    const heatmap = buildNoveltyHeatmap(visiblePapers);
     if (heatmap) allTraces.push(heatmap);
 
     // Group papers by parent cluster
     const groups = new Map<number, SemanticPaper[]>();
-    for (const p of data.papers) {
+    for (const p of visiblePapers) {
       const pid = p.parentCluster;
       if (!groups.has(pid)) groups.set(pid, []);
       groups.get(pid)!.push(p);
@@ -333,10 +403,20 @@ export default function SemanticScatter({
     }
 
     return allTraces;
-  }, [data, selectedParent, selectedCluster, sizeMode, showMyPapers, injectedPaper, markedPapers]);
+  }, [data, selectedParent, selectedCluster, sizeMode, showMyPapers, showAiBase, injectedPaper, markedPapers]);
 
   return (
+    <div className="viz-export-wrap">
+      <button
+        className="fig-export-btn fig-export-btn--left"
+        onClick={handleExport}
+        title="Download this view as a vector SVG figure"
+      >
+        ⤓ SVG
+      </button>
     <Plot
+      onInitialized={(_, gd) => { graphDivRef.current = gd; }}
+      onUpdate={(_, gd) => { graphDivRef.current = gd; }}
       data={traces}
       layout={{
         // @ts-expect-error plotly template string
@@ -373,6 +453,7 @@ export default function SemanticScatter({
         }
       }}
     />
+    </div>
   );
 }
 

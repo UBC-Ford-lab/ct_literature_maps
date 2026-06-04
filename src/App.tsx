@@ -29,10 +29,12 @@ export default function App() {
   const [isEmbedding, setIsEmbedding] = useState(false);
   const [citationCount, setCitationCount] = useState(0);
   const [citationSelected, setCitationSelected] = useState<CitationSelectedPaper | null>(null);
-  const [showWelcome, setShowWelcome] = useState(true);
+  const [showHelp, setShowHelp] = useState(true);
   const [citationSearchId, setCitationSearchId] = useState<string | null>(null);
   const [viewingAuthor, setViewingAuthor] = useState<string | null>(null);
   const [markedPapers, setMarkedPapers] = useState<Set<string>>(new Set());
+  // When false, hide AI-base papers (track === "ai") and show only CT-relevant work.
+  const [showAiBase, setShowAiBase] = useState(true);
 
   const toggleMarkAll = useCallback((ids: string[]) => {
     setMarkedPapers((prev) => {
@@ -89,9 +91,36 @@ export default function App() {
       <header className="top-bar">
         <div className="top-bar-left">
           <h1>CT Reconstruction Literature Map</h1>
-          <span className="subtitle">
-            AI-Driven Computed Tomography Reconstruction &amp; Enhancement
-          </span>
+          <button
+            className="help-chip"
+            onClick={() => setShowHelp((v) => !v)}
+            aria-label="About this map"
+            aria-expanded={showHelp}
+            title="About this map"
+          >
+            ?
+          </button>
+          {showHelp && (
+            <>
+              <div className="help-backdrop" onClick={() => setShowHelp(false)} />
+              <div className="help-popover" role="dialog">
+                <button
+                  className="help-popover-close"
+                  onClick={() => setShowHelp(false)}
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+                <p>
+                  {semanticData.totalPapers.toLocaleString()} papers on machine learning for CT
+                  reconstruction, positioned by topic and linked by citations.
+                </p>
+                <p>
+                  Use the tabs to change view. Scroll to zoom, drag to pan, and click any paper to inspect it.
+                </p>
+              </div>
+            </>
+          )}
         </div>
         <nav className="view-tabs">
           <button
@@ -131,17 +160,28 @@ export default function App() {
               />
             </>
           )}
+          {(tab === "semantic" || tab === "citation" || tab === "inject") && (
+            <label className="aibase-toggle" title="Toggle off to hide AI-foundation papers and show only CT-relevant work">
+              <input
+                type="checkbox"
+                checked={showAiBase}
+                onChange={(e) => setShowAiBase(e.target.checked)}
+              />
+              <span className="aibase-track"><span className="aibase-thumb" /></span>
+              <span className="aibase-label">AI base papers</span>
+            </label>
+          )}
           <span className="paper-count">
             {tab === "citation"
               ? `${citationCount.toLocaleString()} papers`
-              : `${semanticData.totalPapers.toLocaleString()} papers`}
+              : `${(showAiBase
+                  ? semanticData.totalPapers
+                  : semanticData.papers.filter((p) => p.track !== "ai").length
+                ).toLocaleString()} papers`}
           </span>
           <a className="github-btn" href="https://github.com/UBC-Ford-lab/ct_literature_maps" target="_blank" rel="noopener noreferrer" title="View on GitHub">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
           </a>
-          <button className="help-btn" onClick={() => setShowWelcome(true)} title="About this tool">
-            ?
-          </button>
         </div>
       </header>
 
@@ -186,13 +226,14 @@ export default function App() {
               selectedCluster={selectedCluster}
               sizeMode={sizeMode}
               showMyPapers={showMyPapers}
+              showAiBase={showAiBase}
               injectedPaper={injectedPaper}
               markedPapers={markedPapers}
               onSelectPaper={setSelectedPaper}
             />
           )}
           {tab === "citation" && (
-            <CitationNetwork onPaperCount={setCitationCount} onSelectPaper={setCitationSelected} searchNodeId={citationSearchId} onSearchHandled={() => setCitationSearchId(null)} markedPapers={markedPapers} />
+            <CitationNetwork onPaperCount={setCitationCount} onSelectPaper={setCitationSelected} searchNodeId={citationSearchId} onSearchHandled={() => setCitationSearchId(null)} markedPapers={markedPapers} showAiBase={showAiBase} />
           )}
           {tab === "trends" && (
             <ResearchTrends data={semanticData} />
@@ -354,23 +395,6 @@ export default function App() {
       <footer className="footer">
         Falk L. Wiegmann &amp; Nancy L. Ford — University of British Columbia — 2026
       </footer>
-
-      {showWelcome && (
-        <div className="welcome-overlay" onClick={() => setShowWelcome(false)}>
-          <div className="welcome-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>CT Reconstruction Literature Map</h2>
-            <p>
-              ~5,000 papers on AI-driven CT reconstruction. Scroll to zoom, drag to pan, click any paper for details.
-            </p>
-            <p>
-              Use the tabs to switch between the semantic map, citation network, publication trends, or to place your own paper on the map.
-            </p>
-            <button className="welcome-close" onClick={() => setShowWelcome(false)}>
-              Got it
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
