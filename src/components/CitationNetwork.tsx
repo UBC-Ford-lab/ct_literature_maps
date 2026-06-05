@@ -67,6 +67,7 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper, searchNod
   const [yearRange, setYearRange] = useState<[number, number]>([1970, 2026]);
   const yearRangeRef = useRef<[number, number]>([1970, 2026]);
   const [showCamDebug, setShowCamDebug] = useState(false);
+  const [includeLegend, setIncludeLegend] = useState(true);
   const [camState, setCamState] = useState<{ x: number; y: number; ratio: number } | null>(null);
   const [parentLabels, setParentLabels] = useState<Record<number, string>>({});
 
@@ -564,7 +565,7 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper, searchNod
 
     // Legend (top-left), sized relative to the figure.
     const entries = Object.entries(PARENT_COLORS).filter(([id]) => parentLabels[Number(id)]);
-    if (entries.length) {
+    if (includeLegend && entries.length) {
       const fs = Math.max(7, vbW / 75);
       const dot = fs * 0.85;
       const rowH = fs * 1.7;
@@ -583,7 +584,7 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper, searchNod
 
     parts.push(`</svg>`);
     downloadText(parts.join(""), "citation-network.svg");
-  }, [parentLabels]);
+  }, [parentLabels, includeLegend]);
 
   const handleYearChange = (idx: 0 | 1, value: number) => {
     setYearRange((prev) => {
@@ -622,13 +623,23 @@ export default function CitationNetwork({ onPaperCount, onSelectPaper, searchNod
           </>
         )}
       </div>
-      <button
-        className="fig-export-btn"
-        onClick={handleExportSVG}
-        title="Download this network as a compact vector SVG figure"
-      >
-        ⤓ SVG
-      </button>
+      <div className="fig-export-group">
+        <button
+          className="fig-export-btn fig-export-btn--ingroup"
+          onClick={handleExportSVG}
+          title="Download this network as a compact vector SVG figure"
+        >
+          ⤓ SVG
+        </button>
+        <label className="fig-export-opt" title="Include the topic-cluster legend in the exported SVG">
+          <input
+            type="checkbox"
+            checked={includeLegend}
+            onChange={(e) => setIncludeLegend(e.target.checked)}
+          />
+          Legend
+        </label>
+      </div>
       <button
         className="cam-debug-toggle"
         onClick={() => setShowCamDebug((v) => !v)}
